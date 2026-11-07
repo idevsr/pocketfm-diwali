@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Adapted from https://headout-diwali.vercel.app/ -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Happy Diwali from Pocket FM</title>
+<meta name="description" content="Light the Pocket FM lantern and set off fireworks. Happy Diwali from all of us at Pocket FM.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Pocket FM">
+<meta property="og:title" content="Here’s to brighter stories. Happy Diwali from Pocket FM">
+<meta property="og:description" content="Light the lantern, then tap anywhere for fireworks.">
+<!-- Link previews need an absolute URL: prefix og.jpg with the live domain once deployed. -->
+<meta property="og:image" content="og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Pocket FM logo above Here’s to brighter stories, beside a glowing purple paper lantern with fireworks.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Here’s to brighter stories. Happy Diwali from Pocket FM">
+<meta name="twitter:description" content="Light the lantern, then tap anywhere for fireworks.">
+<meta name="twitter:image" content="og.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪔</text></svg>">
+<meta name="theme-color" content="#08021a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-top:#24105e;
+    --sky-mid:#140838;
+    --sky-bottom:#060218;
+    --ink:#f7f1ff;
+    --ink-soft:rgba(247,241,255,.66);
+    --pill:rgba(255,255,255,.08);
+    --pill-hover:rgba(255,255,255,.16);
+    --pill-border:rgba(214,190,255,.35);
+    --focus:#d6beff;
+    color-scheme: dark;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  /* The scene is a night sky in both modes, so dark values match light ones. */
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --sky-top:#24105e; --sky-mid:#140838; --sky-bottom:#060218; --ink:#f7f1ff; }
+  }
+  :root[data-theme="dark"]{ --sky-top:#24105e; --sky-mid:#140838; --sky-bottom:#060218; --ink:#f7f1ff; }
+  html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+  html,body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; }
+  body{
+    /* unlit: a deep, near-black purple night */
+    background:radial-gradient(140% 100% at 60% 40%, #10052b 0%, #08021a 55%, #030010 100%);
+    background-color:#030010;
+    color:var(--ink);
+    font-family:"Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -webkit-tap-highlight-color:transparent;
+  }
+  /* fine grain: breaks up gradient banding and gives the sky a printed feel */
+  body::after{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:5;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    opacity:.07; mix-blend-mode:soft-light;
+  }
+  /* lit sky: fades in with the lantern's light (opacity driven from the render loop) */
+  .sky{
+    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0;
+    background:
+      radial-gradient(90% 60% at 50% 42%, rgba(70,24,150,.55) 0%, rgba(70,24,150,0) 70%),
+      radial-gradient(140% 100% at 50% 40%, var(--sky-top) 0%, var(--sky-mid) 50%, var(--sky-bottom) 100%);
+  }
+  #fx, #scene{ position:fixed; inset:0; width:100%; height:100%; display:block; }
+  #fx{ z-index:0; pointer-events:none; }
+  #scene{ z-index:1; touch-action:none; cursor:grab; opacity:0; transition:opacity 1.6s ease .1s; }
+  #scene.ready{ opacity:1; }
+  #scene.dragging{ cursor:grabbing; }
+
+  /* layout: copy column on the left, lantern on the right on wide screens */
+  .copy{
+    position:fixed; inset:0; z-index:2; pointer-events:none;
+    display:flex; flex-direction:column; justify-content:space-between;
+    padding:calc(env(safe-area-inset-top,0px) + 22px) max(22px, env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 22px) max(22px, env(safe-area-inset-left,0px));
+  }
+  /* phones: everything stacks on the centre line */
+  header{ text-align:center; padding:0 8px; }
+  header .brand{ display:block; height:30px; width:auto; margin:0 auto 22px; }
+  h1{
+    margin:0;
+    font-family:"Allura", "Snell Roundhand", "Apple Chancery", cursive;
+    font-weight:400; font-size:clamp(40px, 11vw, 58px); line-height:.95; letter-spacing:.005em;
+    text-wrap:balance;
+    text-shadow:0 2px 28px rgba(150,80,255,.5);
+  }
+  header p{ margin:8px 0 0; color:var(--ink-soft); font-size:15px; letter-spacing:.01em; }
+  footer{ display:flex; flex-direction:column; align-items:center; gap:12px; }
+  #hint{ margin:0; color:var(--ink-soft); font-size:14px; letter-spacing:.01em; text-align:center; min-height:1.3em; transition:opacity .5s; }
+
+  @media (min-aspect-ratio: 4/3) and (min-width: 700px){
+    .copy{
+      inset:auto; top:50%; left:max(clamp(32px, 7vw, 140px), env(safe-area-inset-left,0px));
+      transform:translateY(-50%);
+      width:min(44vw, 580px); padding:0;
+      justify-content:flex-start; gap:clamp(22px, 6vh, 52px);
+    }
+    header{ padding:0; text-align:left; }
+    header .brand{ height:clamp(30px, 2.5vw, 40px); margin:0 0 clamp(12px, 2.6vh, 26px); }
+    footer{ align-items:flex-start; }
+    #hint{ text-align:left; }
+    h1{ font-size:min(clamp(60px, 6.2vw, 108px), 15vh); max-width:12ch; line-height:.92; }
+    header p{ font-size:clamp(15px, 1.25vw, 19px); margin-top:clamp(10px, 2vh, 18px); }
+    #hint{ font-size:clamp(14px, 1.05vw, 16px); }
+  }
+  .pill{
+    pointer-events:auto;
+    font:inherit; font-weight:500; font-size:15px; color:var(--ink);
+    background:var(--pill); border:1px solid var(--pill-border);
+    border-radius:999px; cursor:pointer; touch-action:manipulation; min-height:44px;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    transition:background .25s, border-color .25s, transform .15s;
+  }
+  .pill:hover{ background:var(--pill-hover); border-color:rgba(230,212,255,.55); }
+  .pill:active{ transform:scale(.97); }
+  .pill:focus-visible{ outline:2px solid var(--focus); outline-offset:3px; }
+  #toggle{
+    --face-top:#ffe6a8; --face-bot:#f2b24a; --lip:#a8661a; --ink-btn:#3b1600; --halo:rgba(255,190,90,.45);
+    position:relative; min-height:54px; padding:0 30px 0 24px;
+    display:inline-flex; align-items:center; gap:10px;
+    font-weight:600; font-size:16px; letter-spacing:.005em; color:var(--ink-btn);
+    border:0; border-radius:999px;
+    background:linear-gradient(180deg, var(--face-top), var(--face-bot));
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.75),
+      inset 0 -2px 6px rgba(0,0,0,.12),
+      0 5px 0 var(--lip),
+      0 12px 26px var(--halo);
+    transform:translateY(0);
+    transition:transform .09s ease, box-shadow .09s ease, filter .2s;
+    backdrop-filter:none; -webkit-backdrop-filter:none;
+  }
+  #toggle:hover{ filter:brightness(1.05); background:linear-gradient(180deg, var(--face-top), var(--face-bot)); }
+  #toggle:active, #toggle.pressed{
+    transform:translateY(4px);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255,255,255,.6),
+      inset 0 2px 8px rgba(0,0,0,.14),
+      0 1px 0 var(--lip),
+      0 5px 14px var(--halo);
+  }
+  #toggle[aria-pressed="true"]{
+    --face-top:#f6efff; --face-bot:#cdb2ff; --lip:#6f45c8; --ink-btn:#250a5e; --halo:rgba(170,120,255,.4);
+  }
+  #toggle .flame{ width:18px; height:18px; flex:none; }
+  #toggle .flame path{ transition:fill .3s; }
+  #toggle[aria-pressed="false"]::after{
+    content:""; position:absolute; inset:-6px; border-radius:999px; pointer-events:none;
+    box-shadow:0 0 0 0 rgba(255,205,120,.55);
+    animation:invite 2.4s ease-out infinite;
+  }
+  @keyframes invite{ 0%{ box-shadow:0 0 0 0 rgba(255,205,120,.5); } 70%,100%{ box-shadow:0 0 0 14px rgba(255,205,120,0); } }
+  @media (prefers-reduced-motion: reduce){ #toggle::after{ animation:none !important; } }
+
+  #sound{
+    position:fixed; z-index:3;
+    top:calc(env(safe-area-inset-top,0px) + 16px); right:16px;
+    width:44px; height:44px; padding:0; display:grid; place-items:center;
+  }
+  #sound svg{ width:19px; height:19px; }
+  #sound .off{ display:none; }
+  #sound[aria-pressed="false"] .on{ display:none; }
+  #sound[aria-pressed="false"] .off{ display:block; }
+
+  /* very short screens (phones held sideways) */
+  @media (max-height: 460px){
+    header p{ display:none; }
+    #sound{ top:calc(env(safe-area-inset-top,0px) + 10px); }
+  }
+  @media (prefers-reduced-motion: no-preference){
+    header{ animation:rise 1.4s cubic-bezier(.2,.7,.2,1) .3s both; }
+    footer{ animation:rise 1.4s cubic-bezier(.2,.7,.2,1) .9s both; }
+    @keyframes rise{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+  }
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+<canvas id="fx" aria-hidden="true"></canvas>
+<canvas id="scene" aria-label="A paper lantern with the Pocket FM logo. Tap it to light it, drag to spin it, tap anywhere else for fireworks."></canvas>
+<button id="sound" class="pill" type="button" aria-pressed="true" aria-label="Sound">
+  <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.5a7.6 7.6 0 0 1 0 11"/></svg>
+  <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+</button>
+<div class="copy">
+<header>
+  <svg class="brand" viewBox="0 0 473 107" role="img" aria-label="Pocket FM" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 15.7055C0 7.03161 7.0298 0 15.7015 0H91.2649C99.9366 0 106.966 7.03161 106.966 15.7055V91.2884C106.966 99.9622 99.9366 106.994 91.2649 106.994H15.7015C7.0298 106.994 0 99.9622 0 91.2884V15.7055Z" fill="#E51A4D"/>
+<path fill-rule="evenodd" d="M53.3252 18.4195C69.9933 18.4195 83.5054 31.9151 83.5054 48.5625C83.5054 65.2098 69.9933 78.7053 53.3252 78.7053C48.5397 78.7053 44.001 77.5926 39.9785 75.5941L23.1455 88.3269V48.5625V46.6258H23.2073C24.2181 30.8638 37.3175 18.4195 53.3252 18.4195Z M44.4342 39.1259H45.5898L55.4709 32.8417C55.6152 32.7593 55.8006 32.8005 55.8831 32.9242C55.966 33.0685 55.9243 33.254 55.8006 33.3364L46.7036 39.1259H62.1337C63.7427 39.1259 65.0424 40.424 65.0424 42.0309V53.3835C65.0424 54.9909 63.7427 56.2886 62.1337 56.2886H44.4548C42.8459 56.2886 41.5461 54.9909 41.5461 53.3835V42.0309C41.5255 40.424 42.8459 39.1259 44.4342 39.1259Z M60.5592 53.3855C61.7996 52.1462 61.7996 50.1374 60.5592 48.8982C59.3183 47.6594 57.307 47.6594 56.0666 48.8982C54.8257 50.1374 54.8257 52.1462 56.0666 53.3855C57.307 54.6248 59.3183 54.6248 60.5592 53.3855Z M51.3655 54.3313C52.1515 54.3313 52.7889 53.6947 52.7889 52.9099C52.7889 52.1247 52.1515 51.4881 51.3655 51.4881C50.5794 51.4881 49.942 52.1247 49.942 52.9099C49.942 53.6947 50.5794 54.3313 51.3655 54.3313Z M46.6418 54.3107C47.4254 54.3107 48.0652 53.6721 48.0652 52.8893C48.0652 52.106 47.4254 51.4675 46.6418 51.4675C45.8577 51.4675 45.2183 52.106 45.2183 52.8893C45.2183 53.6721 45.8577 54.3107 46.6418 54.3107Z M55.2231 42.2577H44.9087V45.2864H55.2231V42.2577Z M61.3502 42.2577H56.4817V45.2864H61.3502V42.2577Z M63.5984 37.6221C65.1043 37.7045 66.4247 38.7548 66.858 40.1973C66.8992 40.3622 66.8167 40.5271 66.6514 40.5683C66.4865 40.6096 66.3217 40.5271 66.2804 40.3622C65.909 39.1465 64.8364 38.2812 63.5572 38.1988C63.3923 38.1988 63.2687 38.0545 63.2687 37.8901C63.2893 37.7252 63.4335 37.6015 63.5984 37.6221Z M63.5778 36.3239H64.1553C66.3422 36.3239 68.116 38.0957 68.1366 40.2797C68.1366 40.4447 68.013 40.5683 67.8481 40.5683C67.6832 40.5683 67.5591 40.4447 67.5591 40.2797C67.5591 38.4255 66.0326 36.9212 64.1759 36.9212H63.5984C63.4335 36.9212 63.3099 36.798 63.3099 36.6331C63.2893 36.4476 63.4129 36.3239 63.5778 36.3239Z M63.5778 34.9639H64.011C66.8991 34.9639 69.2715 37.3335 69.2715 40.2179V40.2798C69.2715 40.4447 69.1479 40.5683 68.9825 40.5683C68.8177 40.5683 68.694 40.4447 68.694 40.2798V40.2179C68.694 37.6633 66.5895 35.5617 64.0317 35.5617H63.5984C63.4335 35.5617 63.3099 35.438 63.3099 35.2731C63.2893 35.0876 63.4129 34.9639 63.5778 34.9639Z" fill="#ffffff"/>
+<path fill-rule="evenodd" d="M155.18 51.9823C161.616 51.9823 164.855 49.1804 164.855 43.5558C164.855 37.9313 161.637 35.1288 155.18 35.1288H143.319V51.9823H155.18ZM135.233 78.2523C134.387 77.4071 133.953 76.2533 133.953 74.8113V32.3063C133.953 30.905 134.345 29.813 135.15 29.0302C135.954 28.2474 137.048 27.8763 138.45 27.8763H156.336C161.823 27.8763 166.072 29.2363 169.126 31.9764C172.179 34.7171 173.705 38.5492 173.705 43.494C173.705 48.4388 172.179 52.2709 169.126 55.0322C166.072 57.7929 161.802 59.173 156.336 59.173H143.319V74.7907C143.319 76.2326 142.886 77.3865 142.04 78.2317C141.194 79.0763 140.039 79.5087 138.595 79.5087C137.192 79.5087 136.078 79.0969 135.233 78.2523ZM202.73 69.7222C204.277 67.7855 205.061 64.9217 205.061 61.1514C205.061 57.4218 204.277 54.5787 202.73 52.6214C201.183 50.6641 198.955 49.6751 196.046 49.6751C193.137 49.6751 190.889 50.6641 189.321 52.6214C187.753 54.5787 186.949 57.4218 186.949 61.1514C186.949 64.9217 187.732 67.7855 189.28 69.7222C190.827 71.6589 193.055 72.6272 195.963 72.6272C198.934 72.6066 201.183 71.6589 202.73 69.7222ZM186.495 77.4071C183.751 75.9033 181.627 73.7605 180.141 70.9379C178.635 68.136 177.893 64.8599 177.893 61.1308C177.893 57.4012 178.635 54.1458 180.141 51.3644C181.647 48.5831 183.772 46.4402 186.495 44.9364C189.238 43.4321 192.415 42.6906 196.067 42.6906C199.697 42.6906 202.895 43.4321 205.618 44.9364C208.361 46.4402 210.466 48.5831 211.952 51.3644C213.437 54.1458 214.178 57.4012 214.178 61.1308C214.178 64.8599 213.437 68.136 211.952 70.9379C210.466 73.7399 208.361 75.9033 205.618 77.4071C202.874 78.9114 199.697 79.653 196.067 79.653C192.415 79.653 189.218 78.9114 186.495 77.4071ZM228.083 77.4071C225.401 75.9033 223.317 73.7811 221.873 71.0204C220.429 68.2596 219.686 65.0454 219.686 61.3571C219.686 57.6692 220.449 54.4137 221.976 51.5912C223.503 48.7686 225.649 46.5639 228.414 45.0189C231.176 43.4734 234.353 42.6906 237.943 42.6906C239.841 42.6906 241.739 42.9585 243.658 43.494C245.575 44.0299 247.246 44.7504 248.711 45.678C250.258 46.6876 251.042 47.9853 251.042 49.5308C251.042 50.6022 250.795 51.4469 250.279 52.106C249.763 52.7656 249.103 53.095 248.277 53.095C247.741 53.095 247.184 52.9713 246.606 52.7244C246.029 52.4771 245.451 52.1885 244.854 51.8591C243.782 51.2201 242.771 50.7259 241.801 50.3755C240.831 50.0049 239.718 49.84 238.459 49.84C235.447 49.84 233.136 50.8285 231.506 52.7863C229.876 54.7436 229.073 57.5661 229.073 61.254C229.073 64.8805 229.876 67.6825 231.506 69.6398C233.136 71.5971 235.447 72.586 238.459 72.586C239.676 72.586 240.749 72.4005 241.698 72.0506C242.647 71.6795 243.699 71.1848 244.854 70.5669C245.575 70.134 246.214 69.8047 246.751 69.5779C247.287 69.3517 247.824 69.2486 248.36 69.2486C249.144 69.2486 249.784 69.5779 250.32 70.2577C250.856 70.9379 251.125 71.7826 251.125 72.7921C251.125 73.6162 250.939 74.3377 250.588 74.935C250.217 75.5323 249.639 76.0888 248.814 76.5625C247.308 77.5308 245.575 78.293 243.575 78.8496C241.595 79.4056 239.552 79.6942 237.468 79.6942C233.879 79.653 230.763 78.9114 228.083 77.4071ZM290.217 75.1612C290.217 76.2739 289.825 77.2628 289.02 78.1492C288.216 79.0145 287.287 79.4469 286.215 79.4469C285.142 79.4469 284.151 79.0145 283.223 78.1492L266.204 62.7583V75.1818C266.204 76.5831 265.771 77.6545 264.904 78.3755C264.038 79.0969 262.945 79.4675 261.624 79.4675C260.326 79.4675 259.233 79.0969 258.387 78.3755C257.541 77.6545 257.108 76.5831 257.108 75.1818V31.812C257.108 30.4108 257.541 29.3394 258.387 28.6184C259.233 27.8974 260.306 27.5264 261.624 27.5264C262.924 27.5264 264.017 27.8974 264.904 28.6184C265.771 29.3394 266.204 30.4108 266.204 31.812V59.1112L281.758 44.215C282.625 43.3497 283.615 42.9173 284.75 42.9173C285.864 42.9173 286.833 43.3291 287.659 44.1531C288.484 44.9777 288.897 45.9455 288.897 47.0582C288.897 48.1708 288.443 49.1804 287.514 50.1075L276.107 60.7185L288.752 72.0506C289.722 72.9571 290.217 73.9872 290.217 75.1612ZM305.235 51.4056C303.749 52.9512 302.862 55.176 302.573 58.081H319.015C318.912 55.1347 318.189 52.8893 316.828 51.3644C315.466 49.84 313.588 49.0773 311.154 49.0773C308.678 49.0773 306.7 49.8606 305.235 51.4056ZM325.738 70.2989C326.254 70.9379 326.502 71.7826 326.502 72.8334C326.502 74.3377 325.594 75.5941 323.82 76.6037C322.171 77.5308 320.314 78.2729 318.23 78.829C316.147 79.385 314.166 79.6736 312.268 79.6736C306.555 79.6736 302.016 78.0255 298.674 74.7288C295.332 71.4321 293.661 66.9409 293.661 61.2128C293.661 57.5867 294.382 54.3725 295.847 51.5499C297.312 48.748 299.355 46.5639 301.996 45.0189C304.636 43.4734 307.628 42.6906 310.968 42.6906C314.166 42.6906 316.951 43.3909 319.324 44.7917C321.697 46.1929 323.531 48.1914 324.851 50.7465C326.172 53.3217 326.811 56.3298 326.811 59.8326C326.811 61.9136 325.883 62.9639 324.046 62.9639H302.594C302.883 66.3018 303.832 68.7539 305.421 70.3401C307.03 71.9063 309.339 72.7097 312.392 72.7097C313.939 72.7097 315.321 72.5242 316.497 72.133C317.694 71.7413 319.035 71.2054 320.541 70.5256C321.986 69.7428 323.058 69.3718 323.737 69.3718C324.562 69.3517 325.223 69.6604 325.738 70.2989ZM355.794 76.027C355.794 77.1809 355.32 78.0668 354.373 78.6847C353.424 79.2825 352.083 79.5499 350.329 79.4469L348.369 79.3031C340.219 78.7259 336.157 74.3578 336.157 66.24V50.4167H332.526C331.226 50.4167 330.215 50.1281 329.514 49.5514C328.812 48.9747 328.461 48.1296 328.461 47.0169C328.461 45.9043 328.812 45.0601 329.514 44.4829C330.215 43.9063 331.226 43.6177 332.526 43.6177H336.157V36.8805C336.157 35.5823 336.57 34.5315 337.395 33.7482C338.22 32.9659 339.332 32.5948 340.735 32.5948C342.097 32.5948 343.19 32.986 344.016 33.7482C344.841 34.5315 345.254 35.5617 345.254 36.8805V43.5558H351.443C352.743 43.5558 353.754 43.8444 354.455 44.4211C355.154 44.9983 355.505 45.8425 355.505 46.9551C355.505 48.0677 355.154 48.9129 354.455 49.4896C353.754 50.0668 352.743 50.3549 351.443 50.3549H345.254V66.8378C345.254 70.4226 346.904 72.3387 350.205 72.5654L352.165 72.7097C354.579 72.9158 355.794 73.9872 355.794 76.027ZM382.304 78.211C381.458 77.3453 381.025 76.212 381.025 74.7907V32.3063C381.025 30.905 381.417 29.813 382.221 29.0302C383.026 28.2474 384.119 27.8763 385.522 27.8763H411.039C413.989 27.8763 415.475 29.1333 415.475 31.6471C415.475 34.1193 413.989 35.3556 411.039 35.3556H390.245V49.3041H409.595C412.545 49.3041 414.031 50.561 414.031 53.0744C414.031 55.547 412.545 56.7833 409.595 56.7833H390.245V74.7907C390.245 76.1914 389.832 77.3247 389.007 78.211C388.182 79.0763 387.067 79.5087 385.666 79.5087C384.264 79.5087 383.15 79.0763 382.304 78.211ZM470.966 28.7828C471.791 29.628 472.203 30.7612 472.203 32.162V75.1612C472.203 76.5212 471.81 77.5926 471.05 78.3548C470.265 79.1382 469.254 79.5087 467.993 79.5087C466.737 79.5087 465.745 79.1175 465.005 78.3548C464.283 77.572 463.91 76.5212 463.91 75.1612V45.2452L451.553 68.6302C450.976 69.7016 450.336 70.4844 449.655 70.9998C448.974 71.5146 448.172 71.762 447.264 71.762C446.336 71.762 445.551 71.5146 444.871 71.041C444.19 70.5669 443.571 69.7634 442.972 68.6508L430.534 45.6368V75.2025C430.534 76.5006 430.162 77.572 429.399 78.3548C428.657 79.1588 427.645 79.5499 426.387 79.5499C425.129 79.5499 424.138 79.1588 423.396 78.3961C422.673 77.6133 422.302 76.5625 422.302 75.2025V32.162C422.302 30.7612 422.694 29.628 423.499 28.7828C424.303 27.9386 425.376 27.5058 426.738 27.5058C428.636 27.5058 430.101 28.5566 431.173 30.6375L447.305 61.3571L463.375 30.6375C464.445 28.5566 465.868 27.5058 467.664 27.5058C469.048 27.5264 470.142 27.9386 470.966 28.7828Z" fill="#ffffff"/>
+</svg>
+  <h1>Here’s to brighter stories</h1>
+  <p>Wishing you a Diwali full of light</p>
+</header>
+<footer>
+  <p id="hint" aria-live="polite">Tap the lantern to light it</p>
+  <button id="toggle" class="pill" type="button" aria-pressed="false"><svg class="flame" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c.6 3-2.6 4.6-2.6 8a2.6 2.6 0 0 0 5.2.2c0-1 .9-1.7 1.4-1.1 1.6 1.8 2.5 3.8 2.5 5.6a6.5 6.5 0 0 1-13 0c0-5 4.6-7.2 6.5-12.7z" fill="#e8590c"/><path d="M12 13.2c.3 1.4-1.4 2.2-1.4 3.8a1.4 1.4 0 0 0 2.8 0c0-.4.4-.7.7-.4.6.7.9 1.4.9 2.1a3 3 0 0 1-6 0c0-2.4 2.1-3.4 3-5.5z" fill="#ffd27a"/></svg><span class="label">Light the lantern</span></button>
+</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  // Pocket FM mark. The box is square around the round part of the bubble, so the
+  // bubble sits centred on each panel and the tail hangs below it.
+  // LOGO_VIEWBOX is [minX, minY, width, height]; filled evenodd so the radio cuts through.
+  const LOGO_VIEWBOX = [23.1, 18.4, 60.4, 60.4];
+  const LOGO_PATH = "M53.3252 18.4195C69.9933 18.4195 83.5054 31.9151 83.5054 48.5625C83.5054 65.2098 69.9933 78.7053 53.3252 78.7053C48.5397 78.7053 44.001 77.5926 39.9785 75.5941L23.1455 88.3269V48.5625V46.6258H23.2073C24.2181 30.8638 37.3175 18.4195 53.3252 18.4195Z M44.4342 39.1259H45.5898L55.4709 32.8417C55.6152 32.7593 55.8006 32.8005 55.8831 32.9242C55.966 33.0685 55.9243 33.254 55.8006 33.3364L46.7036 39.1259H62.1337C63.7427 39.1259 65.0424 40.424 65.0424 42.0309V53.3835C65.0424 54.9909 63.7427 56.2886 62.1337 56.2886H44.4548C42.8459 56.2886 41.5461 54.9909 41.5461 53.3835V42.0309C41.5255 40.424 42.8459 39.1259 44.4342 39.1259Z M60.5592 53.3855C61.7996 52.1462 61.7996 50.1374 60.5592 48.8982C59.3183 47.6594 57.307 47.6594 56.0666 48.8982C54.8257 50.1374 54.8257 52.1462 56.0666 53.3855C57.307 54.6248 59.3183 54.6248 60.5592 53.3855Z M51.3655 54.3313C52.1515 54.3313 52.7889 53.6947 52.7889 52.9099C52.7889 52.1247 52.1515 51.4881 51.3655 51.4881C50.5794 51.4881 49.942 52.1247 49.942 52.9099C49.942 53.6947 50.5794 54.3313 51.3655 54.3313Z M46.6418 54.3107C47.4254 54.3107 48.0652 53.6721 48.0652 52.8893C48.0652 52.106 47.4254 51.4675 46.6418 51.4675C45.8577 51.4675 45.2183 52.106 45.2183 52.8893C45.2183 53.6721 45.8577 54.3107 46.6418 54.3107Z M55.2231 42.2577H44.9087V45.2864H55.2231V42.2577Z M61.3502 42.2577H56.4817V45.2864H61.3502V42.2577Z M63.5984 37.6221C65.1043 37.7045 66.4247 38.7548 66.858 40.1973C66.8992 40.3622 66.8167 40.5271 66.6514 40.5683C66.4865 40.6096 66.3217 40.5271 66.2804 40.3622C65.909 39.1465 64.8364 38.2812 63.5572 38.1988C63.3923 38.1988 63.2687 38.0545 63.2687 37.8901C63.2893 37.7252 63.4335 37.6015 63.5984 37.6221Z M63.5778 36.3239H64.1553C66.3422 36.3239 68.116 38.0957 68.1366 40.2797C68.1366 40.4447 68.013 40.5683 67.8481 40.5683C67.6832 40.5683 67.5591 40.4447 67.5591 40.2797C67.5591 38.4255 66.0326 36.9212 64.1759 36.9212H63.5984C63.4335 36.9212 63.3099 36.798 63.3099 36.6331C63.2893 36.4476 63.4129 36.3239 63.5778 36.3239Z M63.5778 34.9639H64.011C66.8991 34.9639 69.2715 37.3335 69.2715 40.2179V40.2798C69.2715 40.4447 69.1479 40.5683 68.9825 40.5683C68.8177 40.5683 68.694 40.4447 68.694 40.2798V40.2179C68.694 37.6633 66.5895 35.5617 64.0317 35.5617H63.5984C63.4335 35.5617 63.3099 35.438 63.3099 35.2731C63.2893 35.0876 63.4129 34.9639 63.5778 34.9639Z";
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const canvas = document.getElementById('scene');
+  const hint = document.getElementById('hint');
+  const btn = document.getElementById('toggle');
+  const btnLabel = btn.querySelector('.label');
+  const soundBtn = document.getElementById('sound');
+  const fx = document.getElementById('fx');
+  const fctx = fx.getContext('2d');
+  let FW = 1, FH = 1;
+  function sizeFx(){
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    FW = window.innerWidth; FH = window.innerHeight;
+    fx.width = Math.round(FW * d); fx.height = Math.round(FH * d);
+    fctx.setTransform(d, 0, 0, d, 0, 0);
+  }
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  const maxAniso = renderer.capabilities.getMaxAnisotropy();
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+  // lantern proportions: 6 sides, slim body
+  const N = 6, STEP = 360 / N;
+  const R = 1, H = 0.68, BH = 0.38;
+  const RW = R / Math.cos(Math.PI / N); // keeps each diamond face flat
+  const HOOK_Y = H + BH + 1.05;
+  // fixed point the cord hangs from, far above the screen; the lantern swings from here
+  const ANCHOR_Y = HOOK_Y + 7;
+  const FACE_ASPECT = (2 * R * Math.tan(Math.PI / N)) / (2 * H); // panel width / height
+  const FIT_TOP = HOOK_Y - .1, FIT_BOTTOM = -H - BH - 2.2, FIT_W = 2 * RW + .4;
+
+  const headerEl = document.querySelector('header');
+  const hintEl = document.getElementById('hint');
+  const copyEl = document.querySelector('.copy');
+  const wideMQ = matchMedia('(min-aspect-ratio: 4/3) and (min-width: 700px)');
+  const region = { l:0, r:1, t:0, b:1 };
+  function computeRegion(w, h){
+    if (wideMQ.matches){
+      const c = copyEl.getBoundingClientRect();
+      region.l = Math.max(c.right + w * .02, w * .46); region.r = w * .97;
+      region.t = h * .07; region.b = h * .95;
+    } else {
+      region.l = 0; region.r = w;
+      region.t = Math.max(headerEl.getBoundingClientRect().bottom + 12, h * .1);
+      region.b = Math.min(hintEl.getBoundingClientRect().top - 14, h * .94);
+    }
+  }
+  function resize(){
+    const w = window.innerWidth, h = window.innerHeight;
+    // pin both canvases to the visible viewport so tap maths matches what is drawn,
+    // even while a mobile browser's toolbar slides in and out
+    canvas.style.height = fx.style.height = h + 'px';
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    // fit the lantern into its free region (below the copy on phones, right of it on wide screens)
+    computeRegion(w, h);
+    const availH = Math.min(Math.max(140, region.b - region.t), 620);
+    const availW = Math.max(160, region.r - region.l);
+    const tanH = Math.tan(17.5 * Math.PI / 180);
+    const wide = wideMQ.matches;
+    const zH = (FIT_TOP - FIT_BOTTOM) * h / (2 * tanH * availH * (wide ? .9 : .8));
+    const zW = FIT_W * h / (2 * tanH * availW * (wide ? .7 : .62));
+    const z = Math.max(8.5, zH, zW);
+    const cy = (FIT_TOP + FIT_BOTTOM) / 2;
+    camera.position.set(0, cy, z);
+    camera.lookAt(0, cy, 0);
+    const shiftX = (region.l + region.r) / 2 - w / 2;
+    const shiftY = (region.t + region.b) / 2 - h / 2;
+    camera.setViewOffset(w, h, -shiftX, -shiftY, w, h);
+    camera.updateProjectionMatrix();
+    sizeFx();
+  }
+  window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 250));
+  resize();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
+  setTimeout(resize, 1600); // after the header's entrance animation settles
+
+  // ---------- Textures ----------
+  const logoPath = new Path2D(LOGO_PATH);
+  function drawLogo(ctx, cx, cy, w, color){
+    const s = w / LOGO_VIEWBOX[2];
+    ctx.save();
+    ctx.translate(cx - w / 2, cy - LOGO_VIEWBOX[3] * s / 2);
+    ctx.scale(s, s);
+    ctx.translate(-LOGO_VIEWBOX[0], -LOGO_VIEWBOX[1]);
+    ctx.fillStyle = color;
+    ctx.fill(logoPath, 'evenodd');
+    ctx.restore();
+  }
+  function tex(w, h, draw){
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    const t = new THREE.CanvasTexture(c);
+    t.encoding = THREE.sRGBEncoding;
+    t.anisotropy = maxAniso;
+    return t;
+  }
+  function diamondPath(ctx, cx, cy, r){
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r, cy); ctx.lineTo(cx, cy + r); ctx.lineTo(cx - r, cy);
+    ctx.closePath();
+  }
+  function archPath(ctx, cx, top, w, h){
+    const r = w / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx - r, top + h); ctx.lineTo(cx - r, top + r);
+    ctx.arc(cx, top + r, r, Math.PI, 0);
+    ctx.lineTo(cx + r, top + h); ctx.closePath();
+  }
+  function sparkle(ctx, x, y, r){
+    const k = r * .26;
+    ctx.beginPath();
+    ctx.moveTo(x, y - r); ctx.lineTo(x + k, y - k); ctx.lineTo(x + r, y); ctx.lineTo(x + k, y + k);
+    ctx.lineTo(x, y + r); ctx.lineTo(x - k, y + k); ctx.lineTo(x - r, y); ctx.lineTo(x - k, y - k);
+    ctx.closePath();
+  }
+  function dotDiamond(ctx, r, step, rad){
+    const pts = [[256, 256 - r], [256 + r, 256], [256, 256 + r], [256 - r, 256]];
+    for (let e = 0; e < 4; e++){
+      const a = pts[e], b = pts[(e + 1) % 4];
+      const n = Math.floor(Math.hypot(b[0] - a[0], b[1] - a[1]) / step);
+      for (let i = 0; i < n; i++){
+        const t = (i + .5) / n;
+        ctx.beginPath(); ctx.arc(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, rad, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+  function zigzag(ctx, w, y, dir, size, step){
+    ctx.beginPath();
+    for (let x = 0; x < w; x += step){
+      ctx.moveTo(x, y); ctx.lineTo(x + step / 2, y + dir * size); ctx.lineTo(x + step, y);
+    }
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Panels: gold frame with a dotted border and a big logo in the middle.
+  // Nudged up and right so the bubble's tail clears the dotted border.
+  const LOGO_DX = 6, LOGO_DY = -8;
+  function panelDraw(glow){
+    return (ctx) => {
+      if (glow){ ctx.fillStyle = '#2e0f7c'; }
+      else { const g = ctx.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, '#a565ff'); g.addColorStop(1, '#6b25e8'); ctx.fillStyle = g; }
+      ctx.fillRect(0, 0, 512, 512);
+      // soft light pooling behind the logo
+      const rg = ctx.createRadialGradient(256, 256, 0, 256, 256, 230);
+      rg.addColorStop(0, glow ? 'rgba(165,110,255,1)' : 'rgba(180,130,255,.55)');
+      rg.addColorStop(1, glow ? 'rgba(46,15,124,0)' : 'rgba(180,130,255,0)');
+      ctx.fillStyle = rg; diamondPath(ctx, 256, 256, 236); ctx.fill();
+      diamondPath(ctx, 256, 256, 244); ctx.strokeStyle = glow ? '#8a5a1c' : '#ffd27a'; ctx.lineWidth = 6; ctx.stroke();
+      ctx.fillStyle = glow ? '#7a4f18' : '#ffd27a';
+      dotDiamond(ctx, 228, 20, 3.4);
+      ctx.save();
+      ctx.translate(256, 256); ctx.scale(1 / FACE_ASPECT, 1);
+      if (glow){
+        ctx.save(); ctx.globalAlpha = .28; ctx.filter = 'blur(22px)';
+        drawLogo(ctx, LOGO_DX, LOGO_DY, 196, '#e2d0ff');
+        ctx.restore();
+      }
+      drawLogo(ctx, LOGO_DX, LOGO_DY, 180, '#ffffff');
+      ctx.restore();
+    };
+  }
+  const diamondMap = tex(512, 512, panelDraw(false));
+  const diamondGlow = tex(512, 512, panelDraw(true));
+
+  // Triangles between panels: deep purple paper (darker than the logo panels, so the diamonds stand out)
+  // with nested gold chevrons and a zigzag edge.
+  function triDraw(glow){
+    return (ctx) => {
+      if (glow){ ctx.fillStyle = '#1c0650'; }
+      else { const g = ctx.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, '#5a1ec8'); g.addColorStop(1, '#3a0d96'); ctx.fillStyle = g; }
+      ctx.fillRect(0, 0, 256, 256);
+      ctx.strokeStyle = glow ? '#6e4614' : 'rgba(255,210,122,.85)'; ctx.lineWidth = 4; ctx.lineJoin = 'round';
+      for (let i = 0; i < 3; i++){
+        const y0 = 42 + i * 52, hw = 128 * (1 - y0 / 256) * .72;
+        ctx.beginPath(); ctx.moveTo(128 - hw, y0); ctx.lineTo(128, y0 + 40); ctx.lineTo(128 + hw, y0); ctx.stroke();
+      }
+      ctx.fillStyle = glow ? '#6e4614' : '#ffd27a';
+      zigzag(ctx, 256, 0, 1, 12, 22);
+    };
+  }
+  const triMap = tex(256, 256, triDraw(false));
+  const triGlow = tex(256, 256, triDraw(true));
+
+  // Bands: gold zigzag edges and a row of four-point sparkles that glow warm when lit.
+  function bandDraw(glow){
+    return (ctx, w, h) => {
+      if (glow){ ctx.fillStyle = '#2e0f7c'; }
+      else { const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#9450ff'); g.addColorStop(1, '#6b25e8'); ctx.fillStyle = g; }
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = glow ? '#6e4614' : '#ffd27a';
+      zigzag(ctx, w, 0, 1, 14, 24);
+      zigzag(ctx, w, h, -1, 14, 24);
+      ctx.fillRect(0, 24, w, 2.5); ctx.fillRect(0, h - 26.5, w, 2.5);
+      for (let i = 0; i < 5; i++){
+        const cx = w * (i + .5) / 5;
+        ctx.fillStyle = glow ? '#ffc46a' : '#ffd27a';
+        sparkle(ctx, cx, h / 2, 34);
+        ctx.fill();
+        ctx.fillStyle = glow ? '#ffe6b8' : '#fff1cf';
+        sparkle(ctx, cx, h / 2, 12);
+        ctx.fill();
+      }
+    };
+  }
+  const bandMap = tex(512, 200, bandDraw(false));
+  const bandGlow = tex(512, 200, bandDraw(true));
+
+  function radialTex(stops){
+    return tex(256, 256, (ctx) => {
+      const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+      stops.forEach(s => g.addColorStop(s[0], s[1]));
+      ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
+    });
+  }
+  const sparkTex = radialTex([[0, 'rgba(255,255,255,1)'], [.25, 'rgba(255,255,255,.85)'], [.6, 'rgba(255,255,255,.15)'], [1, 'rgba(255,255,255,0)']]);
+  const haloTex = radialTex([[0, 'rgba(222,190,255,1)'], [.3, 'rgba(150,70,255,.45)'], [.65, 'rgba(110,20,240,.12)'], [1, 'rgba(90,0,220,0)']]);
+
+  // ---------- Lantern geometry ----------
+  function P(r, deg, y){ const a = deg * Math.PI / 180; return [r * Math.sin(a), y, r * Math.cos(a)]; }
+  function geo(tris){
+    const pos = [], uv = [];
+    tris.forEach(t => { pos.push(...t[0], ...t[1], ...t[2]); uv.push(...t[3], ...t[4], ...t[5]); });
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.computeVertexNormals();
+    return g;
+  }
+  const dTris = [], tTris = [], bTris = [], capTris = [], bottomCapTris = [];
+  const HS = STEP / 2;
+  for (let k = 0; k < N; k++){
+    const c = k * STEP;
+    const T = P(R, c, H), Rt = P(RW, c + HS, 0), B = P(R, c, -H), L = P(RW, c - HS, 0);
+    dTris.push([L, B, Rt, [0, .5], [.5, 0], [1, .5]], [L, Rt, T, [0, .5], [1, .5], [.5, 1]]);
+    const Tn = P(R, c + STEP, H), Bn = P(R, c + STEP, -H);
+    tTris.push([T, Rt, Tn, [0, 1], [.5, 0], [1, 1]]);
+    tTris.push([B, Bn, Rt, [0, 1], [1, 1], [.5, 0]]);
+    [[H, H + BH], [-H - BH, -H]].forEach(([y0, y1]) => {
+      const BL = P(R, c, y0), BR = P(R, c + STEP, y0), TR = P(R, c + STEP, y1), TL = P(R, c, y1);
+      bTris.push([BL, BR, TR, [0, 0], [1, 0], [1, 1]], [BL, TR, TL, [0, 0], [1, 1], [0, 1]]);
+    });
+    capTris.push([[0, H + BH, 0], P(R, c, H + BH), P(R, c + STEP, H + BH), [.5, .5], [0, 0], [1, 0]]);
+    bottomCapTris.push([[0, -H - BH, 0], P(R, c + STEP, -H - BH), P(R, c, -H - BH), [.5, .5], [0, 0], [1, 0]]);
+  }
+
+  function paper(map, glow){
+    return new THREE.MeshStandardMaterial({ map, emissiveMap:glow, emissive:0xffffff, emissiveIntensity:0, roughness:.75, metalness:0 });
+  }
+  const matDiamond = paper(diamondMap, diamondGlow);
+  const matTri = paper(triMap, triGlow);
+  const matBand = paper(bandMap, bandGlow);
+  const matCap = new THREE.MeshStandardMaterial({ color:0x2c0a6e, roughness:.8, side:THREE.DoubleSide });
+  const matGold = new THREE.MeshStandardMaterial({ color:0xd9a441, metalness:.55, roughness:.35, emissive:0xffb84a, emissiveIntensity:0 });
+  const matBottom = new THREE.MeshStandardMaterial({ color:0x4a1aa0, emissive:0xe6c6ff, emissiveIntensity:0, roughness:.8, side:THREE.DoubleSide });
+
+  const pivot = new THREE.Group();
+  pivot.position.y = ANCHOR_Y;
+  scene.add(pivot);
+  const lantern = new THREE.Group();
+  lantern.position.y = -ANCHOR_Y;
+  pivot.add(lantern);
+
+  const hitMeshes = [];
+  [[dTris, matDiamond], [tTris, matTri], [bTris, matBand], [capTris, matCap], [bottomCapTris, matBottom]].forEach(([t, m]) => {
+    const mesh = new THREE.Mesh(geo(t), m);
+    lantern.add(mesh); hitMeshes.push(mesh);
+  });
+
+  // gold finial on top
+  const finial = new THREE.Mesh(new THREE.SphereGeometry(.11, 20, 14), matGold);
+  finial.position.y = H + BH + .1;
+  lantern.add(finial);
+  const finialTip = new THREE.Mesh(new THREE.ConeGeometry(.05, .16, 12), matGold);
+  finialTip.position.y = H + BH + .27;
+  lantern.add(finialTip);
+
+  // strings to the hook
+  const sPts = [], sCol = [];
+  for (let k = 0; k < N; k++){
+    sPts.push(...P(R * .96, k * STEP, H + BH), 0, HOOK_Y, 0);
+    sCol.push(.42, .34, .62, .3, .25, .45);
+  }
+  // one cord up from where the strings meet, fading into the sky
+  sPts.push(0, HOOK_Y, 0, 0, ANCHOR_Y, 0);
+  sCol.push(.3, .25, .45, 0, 0, 0);
+  const sGeo = new THREE.BufferGeometry();
+  sGeo.setAttribute('position', new THREE.Float32BufferAttribute(sPts, 3));
+  sGeo.setAttribute('color', new THREE.Float32BufferAttribute(sCol, 3));
+  const stringMat = new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+  lantern.add(new THREE.LineSegments(sGeo, stringMat));
+
+  const innerLight = new THREE.PointLight(0xc48cff, 0, 7, 2);
+  innerLight.position.set(0, -H - BH - .35, 0);
+  lantern.add(innerLight);
+
+  // Scene light starts very low so the unlit lantern sits dark in the night;
+  // it rises with the lantern's own light (see the loop).
+  const hemi = new THREE.HemisphereLight(0x6a5ac8, 0x120830, .05);
+  scene.add(hemi);
+  const moon = new THREE.DirectionalLight(0xa9b6ff, .05);
+  moon.position.set(-4, 5, 6);
+  scene.add(moon);
+
+  // ---------- Tassels ----------
+  const SEG = 10, PER_EDGE = 12;
+  const palette = ['#8a45ff', '#6c22e6', '#a877ff', '#5a16cc', '#d659c4', '#ffc56b', '#9b5cff', '#7a33f0', '#8a45ff'];
+  const strips = [];
+  const yb = -H - BH + .02;
+  for (let e = 0; e < N; e++){
+    const a = new THREE.Vector3(...P(R * .97, e * STEP, yb));
+    const b = new THREE.Vector3(...P(R * .97, e * STEP + STEP, yb));
+    const tan = b.clone().sub(a).normalize();
+    for (let i = 0; i < PER_EDGE; i++){
+      const t = (i + .5) / PER_EDGE;
+      const base = a.clone().lerp(b, t);
+      const radial = new THREE.Vector3(base.x, 0, base.z).normalize();
+      const spinDir = new THREE.Vector3(radial.z, 0, -radial.x); // direction of positive spin
+      strips.push({
+        base, tan, radial, spinDir,
+        len:1.65 + Math.random() * .45,
+        tip:new THREE.Vector3(),
+        w:.055,
+        phase:Math.random() * Math.PI * 2,
+        color:new THREE.Color(palette[(Math.random() * palette.length) | 0])
+      });
+    }
+  }
+  const vPerStrip = (SEG + 1) * 2;
+  const tPos = new Float32Array(strips.length * vPerStrip * 3);
+  const tCol = new Float32Array(strips.length * vPerStrip * 3);
+  const tIdx = [];
+  strips.forEach((s, si) => {
+    const o = si * vPerStrip;
+    for (let j = 0; j <= SEG; j++){
+      const shade = 1 - (j / SEG) * .25;
+      for (let side = 0; side < 2; side++){
+        const vi = (o + j * 2 + side) * 3;
+        tCol[vi] = s.color.r * shade; tCol[vi + 1] = s.color.g * shade; tCol[vi + 2] = s.color.b * shade;
+      }
+      if (j < SEG){
+        const v0 = o + j * 2, v1 = v0 + 1, v2 = v0 + 2, v3 = v0 + 3;
+        tIdx.push(v0, v2, v1, v1, v2, v3);
+      }
+    }
+  });
+  const tasselGeo = new THREE.BufferGeometry();
+  tasselGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3));
+  tasselGeo.setAttribute('color', new THREE.BufferAttribute(tCol, 3));
+  tasselGeo.setIndex(tIdx);
+  const matTassel = new THREE.MeshStandardMaterial({ vertexColors:true, side:THREE.DoubleSide, roughness:.6, emissive:0x2a0c66, emissiveIntensity:0 });
+  const tassels = new THREE.Mesh(tasselGeo, matTassel);
+  lantern.add(tassels);
+  // small gold beads on the end of every other tassel
+  const beadIdx = strips.map((_, i) => i).filter(i => i % 2 === 0);
+  const beads = new THREE.InstancedMesh(new THREE.OctahedronGeometry(.05), matGold, beadIdx.length);
+  lantern.add(beads);
+  const beadDummy = new THREE.Object3D();
+
+  // ---------- Sound (synthesised, no files) ----------
+  const sfx = (function(){
+    let ac = null, master = null, noise = null, muted = false;
+    function ensure(){
+      if (!ac){
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        // iPhone: play through the silent switch like a video would (Safari 17+)
+        try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+        ac = new AC();
+        master = ac.createGain(); master.gain.value = muted ? 0 : .8;
+        const comp = ac.createDynamicsCompressor();
+        comp.threshold.value = -14; comp.ratio.value = 4;
+        master.connect(comp); comp.connect(ac.destination);
+        noise = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+        const d = noise.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      }
+      if (ac.state === 'suspended') ac.resume();
+      return ac;
+    }
+    // Recorded sounds (ElevenLabs). The synth versions below play until these have loaded.
+    const SAMPLE_FILES = {
+      rocket:['sfx/rocket-1.m4a', 'sfx/rocket-2.m4a'],
+      burst:['sfx/burst-1.m4a', 'sfx/burst-2.m4a', 'sfx/burst-3.m4a'],
+      crackle:['sfx/crackle-1.m4a', 'sfx/crackle-2.m4a'],
+      chime:['sfx/chime.m4a']
+    };
+    const samples = {};
+    // Decoded on page load with an offline context (no tap needed), so the very first tap
+    // already gets the recorded chime.
+    if (window.OfflineAudioContext){
+      const decoder = new OfflineAudioContext(2, 1, 44100);
+      Object.keys(SAMPLE_FILES).forEach((name) => {
+        samples[name] = [];
+        SAMPLE_FILES[name].forEach((url) => {
+          fetch(url).then(r => r.arrayBuffer()).then(b => decoder.decodeAudioData(b)).then(buf => samples[name].push(buf)).catch(() => {});
+        });
+      });
+    }
+    function playSample(name, dest, level, when, rate){
+      const list = samples[name];
+      if (!list || !list.length) return false;
+      const s = ac.createBufferSource(), g = ac.createGain();
+      s.buffer = list[(Math.random() * list.length) | 0];
+      s.playbackRate.value = rate || 1;
+      g.gain.value = level;
+      s.connect(g); g.connect(dest); s.start(when);
+      return true;
+    }
+    function out(x){
+      if (ac.createStereoPanner){
+        const p = ac.createStereoPanner();
+        p.pan.value = Math.max(-.75, Math.min(.75, (x / FW) * 2 - 1));
+        p.connect(master); return p;
+      }
+      return master;
+    }
+    function noiseSrc(rate){ const n = ac.createBufferSource(); n.buffer = noise; n.loop = true; n.playbackRate.value = rate || 1; return n; }
+    function env(g, t, peak, attack, decay){
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    }
+    // ---- background music (ElevenLabs): decoded and looped inside Web Audio, because an <audio>
+    // loop leaves an audible gap. music.m4a is padded either side of the loop so any encoder
+    // delay stays harmless. It goes through the master volume, so mute applies to it too. ----
+    const MUSIC_LOOP = [0.250000, 64.440000]; // seconds
+    const MUSIC_LEVEL = [.5, .66]; // unlit, lit: kept under the fireworks
+    let music = null, mood = 0;
+    function startMusic(){
+      if (!ac || music) return;
+      const g = ac.createGain();
+      g.gain.value = .0001; g.connect(master);
+      music = { g };
+      fetch('music.m4a').then(r => r.arrayBuffer()).then(b => ac.decodeAudioData(b)).then((buf) => {
+        const src = ac.createBufferSource();
+        src.buffer = buf; src.loop = true;
+        src.loopStart = MUSIC_LOOP[0]; src.loopEnd = MUSIC_LOOP[1];
+        src.connect(g); src.start(0, MUSIC_LOOP[0]);
+        g.gain.setTargetAtTime(MUSIC_LEVEL[mood], ac.currentTime, 1.5); // slow fade in
+      }).catch(() => {});
+    }
+    // pause everything while the tab is in the background
+    document.addEventListener('visibilitychange', () => {
+      if (!ac) return;
+      if (document.hidden) ac.suspend(); else ac.resume();
+    });
+    return {
+      unlock(){ if (ensure()) startMusic(); },
+      setMood(lit){ mood = lit ? 1 : 0; if (music) music.g.gain.setTargetAtTime(MUSIC_LEVEL[mood], ac.currentTime, .8); },
+      get muted(){ return muted; },
+      setMuted(m){ muted = m; if (master) master.gain.setTargetAtTime(m ? 0 : .8, ac.currentTime, .05); },
+      whoosh(x, dur){
+        if (!ac || muted) return;
+        const t = ac.currentTime, o = out(x);
+        if (playSample('rocket', o, .35, t)) return;
+        const n = noiseSrc(1), f = ac.createBiquadFilter(), g = ac.createGain();
+        f.type = 'bandpass'; f.Q.value = 3;
+        f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(3600, t + dur);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(.07, t + dur * .35);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur + .05);
+        n.connect(f); f.connect(g); g.connect(o);
+        n.start(t); n.stop(t + dur + .1);
+      },
+      boom(x, big, crackTimes){
+        if (!ac || muted) return;
+        const t = ac.currentTime, o = out(x);
+        if (playSample('burst', o, big ? .95 : .75, t, .9 + Math.random() * .2)){
+          playSample('crackle', o, .3, t + .22, .9 + Math.random() * .25);
+          return;
+        }
+        // low thump
+        const osc = ac.createOscillator(), og = ac.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(120, t); osc.frequency.exponentialRampToValueAtTime(36, t + .5);
+        env(og, t, big ? .7 : .5, .005, .55);
+        osc.connect(og); og.connect(o); osc.start(t); osc.stop(t + .7);
+        // body of the bang
+        const n = noiseSrc(.9), lp = ac.createBiquadFilter(), ng = ac.createGain();
+        lp.type = 'lowpass'; lp.frequency.setValueAtTime(2600, t); lp.frequency.exponentialRampToValueAtTime(300, t + .9);
+        env(ng, t, big ? .55 : .4, .004, .9);
+        n.connect(lp); lp.connect(ng); ng.connect(o); n.start(t); n.stop(t + 1);
+        // crackle tail
+        // same crackle times as the haptics, so you feel each pop as you hear it
+        const cracks = crackTimes || makeCracks();
+        for (let i = 0; i < cracks.length; i++){
+          const ct = t + cracks[i];
+          const c = noiseSrc(1.5), hp = ac.createBiquadFilter(), cg = ac.createGain();
+          hp.type = 'highpass'; hp.frequency.value = 2200 + Math.random() * 2500;
+          env(cg, ct, .04 + Math.random() * .1, .002, .025 + Math.random() * .03);
+          c.connect(hp); hp.connect(cg); cg.connect(o); c.start(ct); c.stop(ct + .08);
+        }
+      },
+      chime(){
+        if (!ac || muted) return;
+        const t = ac.currentTime;
+        if (playSample('chime', master, .3, t)) return;
+        [[659.25, .05, 0], [987.77, .035, .07], [1318.5, .02, .14]].forEach(([fq, pk, dl]) => {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'sine'; o.frequency.value = fq;
+          env(g, t + dl, pk, .015, 2.4);
+          o.connect(g); g.connect(master); o.start(t + dl); o.stop(t + dl + 2.6);
+        });
+      }
+    };
+  })();
+
+  // ---------- Haptics ----------
+  // Every effect is a timeline of pulses: [startMs, lengthMs].
+  // Android (Vibration API): the timeline becomes one vibrate pattern; long pulses feel heavy, short ones crisp.
+  // iPhone (no Vibration API): Safari 18+ gives one system tap each time a switch input toggles, so each pulse
+  // becomes a tap and heavy pulses become a quick double tap. Taps are scheduled from inside the user's tap,
+  // because Safari only allows them for a short while after a touch.
+  const canVibrate = typeof navigator.vibrate === 'function';
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function iosTap(){
+    try {
+      const l = document.createElement('label'); l.setAttribute('aria-hidden', 'true'); l.style.display = 'none';
+      const i = document.createElement('input'); i.type = 'checkbox'; i.setAttribute('switch', '');
+      l.appendChild(i); document.head.appendChild(l); l.click(); l.remove();
+    } catch (e) {}
+  }
+  const haptics = {
+    play(pulses, delay){
+      delay = delay || 0;
+      const ps = pulses.map(([t, d]) => [Math.round(t + delay), Math.round(d)]).sort((a, b) => a[0] - b[0]);
+      if (canVibrate){
+        const pat = []; let cur = 0;
+        ps.forEach(([t, d]) => {
+          if (t < cur) return; // overlaps the pulse before it
+          if (!pat.length){ if (t > 0) pat.push(0, t); } else pat.push(t - cur);
+          pat.push(d); cur = t + d;
+        });
+        try { navigator.vibrate(pat); } catch (e) {}
+      } else if (isIOS){
+        let last = -1e9;
+        const at = (t) => { if (t - last < 34) return; last = t; if (t <= 0) iosTap(); else setTimeout(iosTap, t); };
+        ps.forEach(([t, d]) => { at(t); if (d >= 40) at(t + 40); if (d >= 60) at(t + 80); });
+      }
+    },
+    tick(){ this.play([[0, 12]]); }
+  };
+  // crackle pops after a burst, in seconds; shared by the sound and the haptics
+  function makeCracks(){
+    const n = 14 + ((Math.random() * 10) | 0), out = [];
+    for (let i = 0; i < n; i++) out.push(.22 + Math.random() * 1.1);
+    return out.sort((a, b) => a - b);
+  }
+  // a burst feels like: a heavy crack, a fading low rumble, then scattered light pops
+  function burstPulses(type, cracks){
+    const p = type === 'ring'
+      ? [[0, 75], [95, 34], [160, 22], [220, 14]]
+      : [[0, 60], [85, 30], [150, 20], [210, 12]];
+    if (type === 'double') p.push([290, 45], [360, 18], [410, 10]); // the inner ring goes off a beat later
+    cracks.forEach((c, i) => p.push([c * 1000, (i % 3 === 0 ? 16 : 9) + Math.random() * 6]));
+    return p;
+  }
+  // the rocket climbing: light flutters that speed up just before it bursts
+  function rocketPulses(lifeMs){
+    return [[0, 14], [lifeMs * .38, 6], [lifeMs * .6, 7], [lifeMs * .76, 8], [lifeMs * .88, 10]];
+  }
+  function pickBurst(){
+    const roll = Math.random();
+    return { type: roll < .22 ? 'ring' : roll < .5 ? 'double' : 'peony', cracks: makeCracks() };
+  }
+
+  // ---------- Lantern position on screen ----------
+  const gC = new THREE.Vector3(), gE = new THREE.Vector3(), gB = new THREE.Vector3();
+  const LS = { x:0, y:0, ppu:1, bx:0, by:0 };
+  function lanternScreen(){
+    gC.set(0, 0, 0).applyMatrix4(lantern.matrixWorld);
+    gE.copy(gC).add(new THREE.Vector3(1, 0, 0)).project(camera);
+    gC.project(camera);
+    LS.x = (gC.x + 1) / 2 * FW; LS.y = (1 - gC.y) / 2 * FH;
+    LS.ppu = Math.abs(gE.x - gC.x) / 2 * FW;
+    gB.set(0, -H - BH - .9, 0).applyMatrix4(lantern.matrixWorld).project(camera);
+    LS.bx = (gB.x + 1) / 2 * FW; LS.by = (1 - gB.y) / 2 * FH;
+  }
+
+  // ---------- Sky: twinkling stars, sparkles, the odd shooting star ----------
+  const STARS = [];
+  for (let i = 0; i < 170; i++){
+    STARS.push({ x:Math.random(), y:Math.random() * .92, r:.45 + Math.pow(Math.random(), 3) * 1.3,
+      a:.25 + Math.random() * .55, sp:.6 + Math.random() * 2.2, ph:Math.random() * 6.3, warm:Math.random() < .18 });
+  }
+  const GLINTS = [];
+  for (let i = 0; i < 12; i++){
+    GLINTS.push({ x:Math.random(), y:.08 + Math.random() * .7, r:2.6 + Math.random() * 3, sp:.35 + Math.random() * .5, ph:Math.random() * 6.3 });
+  }
+  let shooting = null, nextShoot = 4 + Math.random() * 4;
+  function drawSky(t, dt){
+    fctx.globalCompositeOperation = 'lighter';
+    for (const s of STARS){
+      const tw = reduce ? 1 : .55 + .45 * Math.sin(t * s.sp + s.ph);
+      fctx.globalAlpha = s.a * tw;
+      fctx.fillStyle = s.warm ? '#ffe2b0' : '#efe6ff';
+      fctx.beginPath(); fctx.arc(s.x * FW, s.y * FH, s.r, 0, Math.PI * 2); fctx.fill();
+    }
+    for (const g of GLINTS){
+      const v = reduce ? .5 : Math.max(0, Math.sin(t * g.sp + g.ph));
+      const k = v * v * v;
+      if (k < .02) continue;
+      const x = g.x * FW, y = g.y * FH, r = g.r * (.6 + .4 * k);
+      glow(x, y, r * 4, '220,200,255', .25 * k);
+      fctx.globalAlpha = .9 * k; fctx.fillStyle = '#ffffff';
+      fctx.save(); fctx.translate(x, y); star(r); fctx.fill(); fctx.restore();
+    }
+    if (!reduce){
+      nextShoot -= dt;
+      if (!shooting && nextShoot <= 0){
+        const fromLeft = Math.random() < .5;
+        shooting = { x:FW * (fromLeft ? .05 + Math.random() * .3 : .65 + Math.random() * .3), y:FH * (.05 + Math.random() * .2),
+          vx:(fromLeft ? 1 : -1) * FW * .9, vy:FH * .32, age:0, life:.8 };
+        nextShoot = 7 + Math.random() * 7;
+      }
+      if (shooting){
+        const sh = shooting; sh.age += dt;
+        const k = sh.age / sh.life;
+        const hx = sh.x + sh.vx * sh.age * .6, hy = sh.y + sh.vy * sh.age * .6;
+        const tx = hx - sh.vx * .12, ty = hy - sh.vy * .12;
+        const gr = fctx.createLinearGradient(hx, hy, tx, ty);
+        const a = Math.sin(Math.min(1, k) * Math.PI);
+        gr.addColorStop(0, 'rgba(255,255,255,' + (.9 * a) + ')'); gr.addColorStop(1, 'rgba(200,170,255,0)');
+        fctx.globalAlpha = 1; fctx.strokeStyle = gr; fctx.lineWidth = 1.6; fctx.lineCap = 'round';
+        fctx.beginPath(); fctx.moveTo(hx, hy); fctx.lineTo(tx, ty); fctx.stroke();
+        if (k >= 1) shooting = null;
+      }
+    }
+    fctx.globalAlpha = 1;
+    fctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------- Diamond ripples when the lantern lights up ----------
+  const ripples = [];
+  function rippleOut(){
+    const n = reduce ? 1 : 3;
+    for (let i = 0; i < n; i++) ripples.push({ age:-i * .38, life:2.2 });
+  }
+  function drawRipples(dt){
+    if (!ripples.length) return;
+    const maxR = Math.max(FW, FH) * .62;
+    fctx.globalCompositeOperation = 'lighter';
+    for (let i = ripples.length - 1; i >= 0; i--){
+      const rp = ripples[i];
+      rp.age += dt;
+      if (rp.age < 0) continue;
+      const k = rp.age / rp.life;
+      if (k >= 1){ ripples.splice(i, 1); continue; }
+      const e = 1 - Math.pow(1 - k, 2.4);
+      const r = LS.ppu * 1.4 + (maxR - LS.ppu * 1.4) * e;
+      const a = Math.pow(1 - k, 1.6);
+      fctx.save();
+      fctx.translate(LS.x, LS.y);
+      fctx.scale(1, 1.22);
+      diamond(r, r, r);
+      fctx.globalAlpha = a * .08; fctx.fillStyle = '#b48cff'; fctx.fill();
+      fctx.globalAlpha = a * .55; fctx.strokeStyle = '#d9c4ff'; fctx.lineWidth = 2.2 * (1 - k) + .6; fctx.stroke();
+      diamond(r * .94, r * .94, r * .94);
+      fctx.globalAlpha = a * .22; fctx.strokeStyle = '#ffd27a'; fctx.lineWidth = 1; fctx.stroke();
+      fctx.restore();
+    }
+    fctx.globalAlpha = 1;
+    fctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------- Warm motes drifting up around the lit lantern ----------
+  const motes = [];
+  for (let i = 0; i < (reduce ? 8 : 26); i++){
+    motes.push({ ox:(Math.random() - .5) * 3.6, oy:Math.random(), sp:.05 + Math.random() * .08, sw:Math.random() * 6.3, r:.8 + Math.random() * 1.6 });
+  }
+  function drawMotes(t, dt){
+    if (glowAmt <= .01) return;
+    fctx.globalCompositeOperation = 'lighter';
+    for (const m of motes){
+      m.oy -= m.sp * dt; if (m.oy < 0) m.oy += 1;
+      const x = LS.x + (m.ox + Math.sin(t * .7 + m.sw) * .15) * LS.ppu;
+      const y = LS.y + (2.4 - m.oy * 4.6) * LS.ppu;
+      const fade = Math.sin(m.oy * Math.PI);
+      glow(x, y, m.r * 5, '255,200,120', .35 * fade * glowAmt);
+      fctx.globalAlpha = .85 * fade * glowAmt; fctx.fillStyle = '#ffe3a8';
+      fctx.beginPath(); fctx.arc(x, y, m.r * .7, 0, Math.PI * 2); fctx.fill();
+    }
+    fctx.globalAlpha = 1;
+    fctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------- Glow (soft gaussian falloff, drawn behind the lantern) ----------
+  const GAUSS = [];
+  for (let i = 0; i <= 20; i++){
+    const r = i / 20, e = Math.exp(-4.2);
+    GAUSS.push([r, (Math.exp(-4.2 * r * r) - e) / (1 - e)]);
+  }
+  function glow(x, y, r, rgb, a){
+    if (a <= .003 || r <= 1) return;
+    const g = fctx.createRadialGradient(x, y, 0, x, y, r);
+    for (const [st, v] of GAUSS) g.addColorStop(st, 'rgba(' + rgb + ',' + (v * a).toFixed(4) + ')');
+    fctx.fillStyle = g;
+    fctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  let glowAmt = 0;
+  function drawGlow(){
+    if (glowAmt <= .003) return;
+    fctx.globalCompositeOperation = 'lighter';
+    glow(LS.x, LS.y, LS.ppu * 7.5, '125,60,255', .34 * glowAmt);
+    glow(LS.x, LS.y, LS.ppu * 3.4, '195,150,255', .6 * glowAmt);
+    glow(LS.bx, LS.by, LS.ppu * 2.6, '255,150,220', .16 * glowAmt);
+    fctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------- Fireworks: crisp diamond shapes ----------
+  const SCHEMES = [
+    ['#ffffff', '#d9c2ff'], ['#ffd27a', '#ffffff'], ['#ff8fc9', '#ffe0f0'],
+    ['#b98cff', '#ffffff'], ['#ffd27a', '#ff8fc9'], ['#cdb4ff', '#ffd27a']
+  ];
+  const rockets = [], parts = [], flashes = [];
+  function unit(){ return Math.max(.7, Math.min(1.35, Math.min(FW, FH) / 720)); }
+  function launchAt(x, y, user){
+    y = Math.min(y, FH * .82);
+    const sx = x + (Math.random() - .5) * 70;
+    const life = .6 + Math.random() * .2;
+    const burst = pickBurst();
+    rockets.push({ sx, sy:FH + 16, x:sx, y:FH + 16, tx:x, ty:y, age:0, life, trail:[], user:!!user, burst });
+    sfx.whoosh(x, life);
+    // the whole feel (climb, crack, rumble, crackle) is scheduled now, while we still hold the user's tap
+    if (user){
+      const L = life * 1000;
+      haptics.play(rocketPulses(L).concat(burstPulses(burst.type, burst.cracks).map(([t, d]) => [t + L, d])));
+    }
+  }
+  function burstAt(x, y, user, burst){
+    burst = burst || pickBurst();
+    const u = unit();
+    const [c1, c2] = SCHEMES[(Math.random() * SCHEMES.length) | 0];
+    const type = burst.type;
+    const n = reduce ? 22 : type === 'ring' ? 36 : 44;
+    const speed = (210 + Math.random() * 70) * u;
+    for (let i = 0; i < n; i++){
+      const a = (i / n) * Math.PI * 2 + (Math.random() - .5) * (type === 'ring' ? .02 : .2);
+      const sp = speed * (type === 'ring' ? 1 : .75 + Math.random() * .35);
+      parts.push({ x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, size:(6.5 + Math.random() * 3) * u,
+        col:i % 4 === 0 ? c2 : c1, age:0, life:1.5 + Math.random() * .5, kind:'diamond', tw:Math.random() < .3, ph:Math.random() * 6 });
+    }
+    if (type === 'double'){
+      const m = reduce ? 10 : 20;
+      for (let i = 0; i < m; i++){
+        const a = (i / m) * Math.PI * 2 + Math.PI / m;
+        const sp = speed * .48;
+        parts.push({ x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, size:7 * u, col:c2, age:0, life:1.3,
+          kind:'star', rot:Math.random() * 6, vr:(Math.random() - .5) * 6, tw:false, ph:0 });
+      }
+    }
+    const g = reduce ? 6 : 16;
+    for (let i = 0; i < g; i++){
+      const a = Math.random() * Math.PI * 2, sp = speed * (.2 + Math.random() * .6);
+      parts.push({ x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, size:(3 + Math.random() * 2.5) * u, col:'#ffffff', age:0,
+        life:1.2 + Math.random() * .9, kind:'star', rot:0, vr:(Math.random() - .5) * 4, tw:true, ph:Math.random() * 6 });
+    }
+    flashes.push({ x, y, age:0, life:.55, r:speed * .55, col:c1 });
+    sfx.boom(x, type !== 'peony', burst.cracks);
+  }
+  function launchRandom(){
+    launchNear(Math.random() < .5 ? -1 : 1, false);
+  }
+  // bursts land beside the lantern, inside its region, so the copy stays readable
+  function launchNear(side, user){
+    const off = (1.7 + Math.random() * 1.6) * LS.ppu;
+    let x = LS.x + side * off;
+    const lo = Math.max(18, wideMQ.matches ? region.l - LS.ppu : 18), hi = FW - 18;
+    if (x < lo || x > hi) x = LS.x - side * off;
+    x = Math.max(lo, Math.min(hi, x));
+    const y = region.t + (region.b - region.t) * (.08 + Math.random() * .42);
+    launchAt(x, y, user);
+  }
+  function diamond(len, wid, back){
+    fctx.beginPath();
+    fctx.moveTo(len, 0); fctx.lineTo(0, wid); fctx.lineTo(-back, 0); fctx.lineTo(0, -wid);
+    fctx.closePath();
+  }
+  function star(r){
+    const k = r * .24;
+    fctx.beginPath();
+    fctx.moveTo(r, 0); fctx.lineTo(k, k); fctx.lineTo(0, r); fctx.lineTo(-k, k);
+    fctx.lineTo(-r, 0); fctx.lineTo(-k, -k); fctx.lineTo(0, -r); fctx.lineTo(k, -k);
+    fctx.closePath();
+  }
+  function updateFx(dt){
+    const u = unit();
+    for (let i = rockets.length - 1; i >= 0; i--){
+      const r = rockets[i];
+      r.age += dt;
+      const t = Math.min(1, r.age / r.life), e = 1 - Math.pow(1 - t, 3);
+      r.x = r.sx + (r.tx - r.sx) * e + Math.sin(r.age * 22) * 1.2;
+      r.y = r.sy + (r.ty - r.sy) * e;
+      r.trail.unshift({ x:r.x, y:r.y }); if (r.trail.length > 12) r.trail.pop();
+      if (t >= 1){ burstAt(r.tx, r.ty, r.user, r.burst); rockets.splice(i, 1); }
+    }
+    const drag = Math.exp(-1.9 * dt), grav = 150 * u;
+    for (let i = parts.length - 1; i >= 0; i--){
+      const q = parts[i];
+      q.age += dt;
+      if (q.age >= q.life){ parts.splice(i, 1); continue; }
+      q.vx *= drag; q.vy = q.vy * drag + grav * dt;
+      q.x += q.vx * dt; q.y += q.vy * dt;
+      if (q.rot !== undefined) q.rot += q.vr * dt;
+    }
+    for (let i = flashes.length - 1; i >= 0; i--){
+      flashes[i].age += dt;
+      if (flashes[i].age >= flashes[i].life) flashes.splice(i, 1);
+    }
+  }
+  function drawFx(t){
+    fctx.globalCompositeOperation = 'lighter';
+    for (const f of flashes){
+      const k = f.age / f.life, e = 1 - Math.pow(1 - k, 3);
+      glow(f.x, f.y, f.r * 1.3, '255,236,255', (1 - k) * (1 - k) * .45);
+      fctx.save();
+      fctx.translate(f.x, f.y);
+      fctx.globalAlpha = (1 - k) * (1 - k) * .9;
+      fctx.strokeStyle = f.col; fctx.lineWidth = 2.2 * (1 - k) + .4;
+      const rr = f.r * (.25 + e * .75);
+      diamond(rr, rr, rr); fctx.stroke();
+      fctx.restore();
+    }
+    for (const r of rockets){
+      for (let j = r.trail.length - 1; j >= 0; j--){
+        const p = r.trail[j], k = j / r.trail.length;
+        fctx.save(); fctx.translate(p.x, p.y);
+        fctx.globalAlpha = (1 - k) * .7; fctx.fillStyle = '#ffd9a0';
+        const sz = 3.2 * (1 - k) + .6;
+        diamond(sz * 1.6, sz * .6, sz * 1.6); fctx.rotate(0); fctx.fill();
+        fctx.restore();
+      }
+      glow(r.x, r.y, 26, '255,210,150', .4);
+      fctx.save(); fctx.translate(r.x, r.y); fctx.rotate(-Math.PI / 2);
+      fctx.globalAlpha = 1; fctx.fillStyle = '#fff4dc';
+      diamond(7, 3, 5); fctx.fill();
+      fctx.restore();
+    }
+    for (const q of parts){
+      const k = q.age / q.life;
+      let a = k < .06 ? k / .06 : Math.pow(1 - k, 1.4);
+      if (q.tw) a *= .55 + .45 * Math.sin(t * 28 + q.ph);
+      if (a <= .01) continue;
+      fctx.save();
+      fctx.translate(q.x, q.y);
+      fctx.fillStyle = q.col;
+      if (q.kind === 'diamond'){
+        const sp = Math.hypot(q.vx, q.vy);
+        fctx.rotate(Math.atan2(q.vy, q.vx));
+        const len = q.size * (1 + Math.min(sp / 140, 1.8));
+        const wid = q.size * .4 * (1 - k * .35);
+        fctx.globalAlpha = a * .2;
+        diamond(len * 1.9, wid * 2.6, len * 1.5); fctx.fill();
+        fctx.globalAlpha = a;
+        diamond(len, wid, len * .75); fctx.fill();
+      } else {
+        fctx.rotate(q.rot || 0);
+        const r = q.size * (1 - k * .3);
+        fctx.globalAlpha = a * .22;
+        star(r * 2.1); fctx.fill();
+        fctx.globalAlpha = a;
+        star(r); fctx.fill();
+      }
+      fctx.restore();
+    }
+    fctx.globalAlpha = 1;
+    fctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------- State and interaction ----------
+  const state = { spin:0, spinV:.2, ax:0, vx:0, az:0, vz:0, lit:0, litTarget:0, flickerT:0 };
+  const IDLE_SPIN = reduce ? .06 : .2;
+
+  function setLit(on){
+    state.litTarget = on ? 1 : 0;
+    btnLabel.textContent = on ? 'Put out the lantern' : 'Light the lantern';
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (on){
+      state.flickerT = .75;
+      hint.textContent = 'Drag to spin it. Tap anywhere for fireworks.';
+      sfx.chime();
+      sfx.setMood(true);
+      rippleOut();
+      // a soft glow swelling: tap, tap, then a fuller press
+      haptics.play([[0, 14], [84, 10], [144, 45]]);
+      state.vz += .025;
+      // a small celebration, user-triggered so it gets haptics too
+      [.55, 1.05, 1.5].forEach((d, i) => setTimeout(() => {
+        if (state.litTarget < .5) return;
+        launchNear(i % 2 ? 1 : -1, true);
+      }, d * 1000));
+    } else {
+      hint.textContent = 'Tap the lantern to light it';
+      sfx.setMood(false);
+      haptics.tick();
+    }
+  }
+  btn.addEventListener('click', () => { sfx.unlock(); setLit(state.litTarget < .5); });
+  // keep the pressed look visible for a beat on quick taps
+  btn.addEventListener('pointerdown', () => { btn.classList.add('pressed'); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, () => setTimeout(() => btn.classList.remove('pressed'), 90)));
+  soundBtn.addEventListener('click', () => {
+    sfx.unlock();
+    const m = !sfx.muted;
+    sfx.setMuted(m);
+    soundBtn.setAttribute('aria-pressed', m ? 'false' : 'true');
+    soundBtn.setAttribute('aria-label', m ? 'Sound off' : 'Sound on');
+  });
+
+  const ray = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  // a finger is wider than a mouse: also count taps on the lantern's on-screen box,
+  // including the gaps between tassels
+  function onLantern(x, y){
+    const dx = Math.abs(x - LS.x), dy = y - LS.y, u = LS.ppu;
+    return dx < u * 1.45 && dy > -u * 1.6 && dy < u * 3.3;
+  }
+  function tap(x, y){
+    const rc = canvas.getBoundingClientRect();
+    x -= rc.left; y -= rc.top;
+    ndc.set((x / rc.width) * 2 - 1, -(y / rc.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const hits = ray.intersectObjects(hitMeshes.concat([tassels]), false);
+    if (hits.length || onLantern(x, y)){ setLit(state.litTarget < .5); return; }
+    launchAt(x, y, true);
+  }
+
+  let drag = null;
+  canvas.addEventListener('pointerdown', (e) => {
+    sfx.unlock();
+    canvas.setPointerCapture(e.pointerId);
+    drag = { id:e.pointerId, x:e.clientX, y:e.clientY, sx:e.clientX, sy:e.clientY, t:performance.now(), lt:performance.now(), moved:0 };
+    state.spinV = 0;
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const now = performance.now();
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    const dt = Math.max(1, now - drag.lt) / 1000;
+    drag.moved = Math.max(drag.moved, Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy));
+    if (drag.moved > 6) canvas.classList.add('dragging');
+    state.spin += dx * .011;
+    state.spinV = state.spinV * .4 + (dx * .011 / dt) * .6;
+    state.vz += dx * .00035;
+    state.vx += dy * .00025;
+    drag.x = e.clientX; drag.y = e.clientY; drag.lt = now;
+  });
+  function endDrag(e){
+    if (!drag || e.pointerId !== drag.id) return;
+    canvas.classList.remove('dragging');
+    // touch taps run longer and wobble more than mouse clicks
+    const quick = performance.now() - drag.t < 550;
+    if (drag.moved < 14 && quick){ state.spinV = IDLE_SPIN; tap(e.clientX, e.clientY); }
+    else if (performance.now() - drag.lt > 120){ state.spinV *= .2; }
+    drag = null;
+  }
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target === btn && (e.key === ' ' || e.key === 'Enter')) return;
+    if (e.key === 'ArrowLeft'){ state.spinV -= 1.6; state.vz -= .02; }
+    else if (e.key === 'ArrowRight'){ state.spinV += 1.6; state.vz += .02; }
+    else if (e.key === 'f' || e.key === 'F'){ sfx.unlock(); launchRandom(); }
+    else if (e.key === 'l' || e.key === 'L'){ sfx.unlock(); setLit(state.litTarget < .5); }
+  });
+
+  // ---------- Loop ----------
+  const invQ = new THREE.Quaternion();
+  const tmp = new THREE.Vector3(), dirL = new THREE.Vector3(), D = new THREE.Vector3(), segDir = new THREE.Vector3(), cur = new THREE.Vector3();
+  const DOWN = new THREE.Vector3(0, -1, 0);
+
+  function updateTassels(t){
+    pivot.updateMatrixWorld(true);
+    lantern.getWorldQuaternion(invQ).invert();
+    const breeze = reduce ? 0 : .05;
+    tmp.set(-state.vz * 6 + Math.sin(t * .7) * breeze, -1, state.vx * 6 + Math.sin(t * .53 + 1) * breeze * .6);
+    dirL.copy(tmp).applyQuaternion(invQ);
+    const w = state.spinV;
+    const flare = Math.min(w * w * .045, 1.3);
+    const trail = Math.max(-.8, Math.min(.8, -w * .07));
+    const wob = reduce ? .4 : 1;
+    let vi = 0;
+    for (let si = 0; si < strips.length; si++){
+      const s = strips[si];
+      D.copy(dirL)
+        .addScaledVector(s.radial, flare + Math.sin(t * 1.3 + s.phase * 2) * .035 * wob)
+        .addScaledVector(s.spinDir, trail)
+        .addScaledVector(s.tan, Math.sin(t * 1.7 + s.phase) * .05 * wob)
+        .normalize();
+      cur.copy(s.base);
+      const step = s.len / SEG;
+      for (let j = 0; j <= SEG; j++){
+        const u = j / SEG;
+        tPos[vi] = cur.x - s.tan.x * s.w * .5; tPos[vi + 1] = cur.y - s.tan.y * s.w * .5; tPos[vi + 2] = cur.z - s.tan.z * s.w * .5;
+        if (j === SEG) s.tip.copy(cur);
+        tPos[vi + 3] = cur.x + s.tan.x * s.w * .5; tPos[vi + 4] = cur.y + s.tan.y * s.w * .5; tPos[vi + 5] = cur.z + s.tan.z * s.w * .5;
+        vi += 6;
+        segDir.copy(DOWN).lerp(D, Math.min(1, .3 + u * 1.3));
+        segDir.addScaledVector(s.tan, Math.sin(t * 2.4 + s.phase + u * 4) * .06 * u * wob).normalize();
+        cur.addScaledVector(segDir, step);
+      }
+    }
+    tasselGeo.attributes.position.needsUpdate = true;
+    tasselGeo.computeVertexNormals();
+    for (let b = 0; b < beadIdx.length; b++){
+      const s = strips[beadIdx[b]];
+      beadDummy.position.copy(s.tip); beadDummy.position.y -= .045;
+      beadDummy.rotation.set(0, t * .8 + s.phase, 0);
+      beadDummy.scale.set(1, 1.5, 1);
+      beadDummy.updateMatrix();
+      beads.setMatrixAt(b, beadDummy.matrix);
+    }
+    beads.instanceMatrix.needsUpdate = true;
+  }
+
+  const skyEl = document.querySelector('.sky');
+  let lastSkyOp = '';
+  let last = performance.now(), time = 0;
+  function frame(now){
+    const dt = Math.min(.05, (now - last) / 1000);
+    last = now; time += dt;
+
+    // spin
+    if (!drag){
+      state.spin += state.spinV * dt;
+      state.spinV += (IDLE_SPIN - state.spinV) * (1 - Math.exp(-.6 * dt));
+    }
+    state.spinV = Math.max(-14, Math.min(14, state.spinV));
+    lantern.rotation.y = state.spin;
+
+    // pendulum swing
+    const k = 1.5, c = .9;
+    state.vz += (-k * Math.sin(state.az) - c * state.vz) * dt;
+    state.vx += (-k * Math.sin(state.ax) - c * state.vx) * dt;
+    state.az += state.vz * dt; state.ax += state.vx * dt;
+    state.az = Math.max(-.07, Math.min(.07, state.az));
+    state.ax = Math.max(-.05, Math.min(.05, state.ax));
+    const idle = reduce ? 0 : .005;
+    pivot.rotation.z = state.az + Math.sin(time * .6) * idle;
+    pivot.rotation.x = state.ax + Math.sin(time * .45 + 1) * idle * .6;
+
+    // light
+    state.lit += (state.litTarget - state.lit) * (1 - Math.exp(-3.2 * dt));
+    let f;
+    if (state.flickerT > 0){ state.flickerT -= dt; f = Math.random() < .35 ? .2 : 1; }
+    else f = reduce ? 1 : .93 + .07 * Math.sin(time * 11) * Math.sin(time * 6.7 + .4);
+    const L = state.lit * f;
+    matDiamond.emissiveIntensity = L;
+    matTri.emissiveIntensity = L * .9;
+    matBand.emissiveIntensity = L * .85;
+    matBottom.emissiveIntensity = L * .9;
+    matTassel.emissiveIntensity = L * .45;
+    matGold.emissiveIntensity = L * .35;
+    innerLight.intensity = L * 1.3;
+    hemi.intensity = .05 + state.lit * .7;
+    moon.intensity = .05 + state.lit * .5;
+    glowAmt = L;
+    stringMat.color.setScalar(.4 + state.lit * .6);
+    const skyOp = state.lit.toFixed(3);
+    if (skyOp !== lastSkyOp){ skyEl.style.opacity = skyOp; lastSkyOp = skyOp; }
+
+    updateTassels(time);
+
+    updateFx(dt);
+    fctx.clearRect(0, 0, FW, FH);
+    lanternScreen();
+    drawSky(time, dt);
+    drawGlow();
+    drawRipples(dt);
+    drawMotes(time, dt);
+    drawFx(time);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  requestAnimationFrame(() => canvas.classList.add('ready'));
+})();
+</script>
+</body>
+</html>
