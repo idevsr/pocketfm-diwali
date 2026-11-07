@@ -37,14 +37,25 @@
   /* one layer per colour theme; a firework crossfades to the next one */
   .sky i{ position:absolute; inset:0; opacity:0; transition:opacity 1.6s ease; }
   .sky i.on{ opacity:1; }
-  .sky i:nth-child(1){ background:radial-gradient(120% 80% at 50% 62%, rgba(229,26,77,.42) 0%, rgba(229,26,77,0) 70%), linear-gradient(180deg, #12020a 0%, #2e0519 55%, #5e0a2f 100%); }
-  .sky i:nth-child(2){ background:radial-gradient(120% 80% at 50% 62%, rgba(255,140,30,.38) 0%, rgba(255,140,30,0) 70%), linear-gradient(180deg, #130703 0%, #311506 55%, #6e3402 100%); }
-  .sky i:nth-child(3){ background:radial-gradient(120% 80% at 50% 62%, rgba(20,190,190,.34) 0%, rgba(20,190,190,0) 70%), linear-gradient(180deg, #020b12 0%, #062231 55%, #074559 100%); }
-  .sky i:nth-child(4){ background:radial-gradient(120% 80% at 50% 62%, rgba(215,50,215,.36) 0%, rgba(215,50,215,0) 70%), linear-gradient(180deg, #0f0216 0%, #2b0637 55%, #5c0d6e 100%); }
-  #trail, #fx, #scene{ position:fixed; inset:0; width:100%; height:100%; display:block; }
+  .sky i:nth-child(1){ background:radial-gradient(110% 55% at 50% 78%, rgba(229,26,77,.2) 0%, rgba(229,26,77,0) 72%), linear-gradient(180deg, #0d0208 0%, #1f0512 55%, #47102a 100%); }
+  .sky i:nth-child(2){ background:radial-gradient(110% 55% at 50% 78%, rgba(255,140,30,.16) 0%, rgba(255,140,30,0) 72%), linear-gradient(180deg, #0d0603 0%, #231106 55%, #4c260c 100%); }
+  .sky i:nth-child(3){ background:radial-gradient(110% 55% at 50% 78%, rgba(20,190,190,.15) 0%, rgba(20,190,190,0) 72%), linear-gradient(180deg, #020a10 0%, #071c28 55%, #0d3a4a 100%); }
+  .sky i:nth-child(4){ background:radial-gradient(110% 55% at 50% 78%, rgba(215,50,215,.17) 0%, rgba(215,50,215,0) 72%), linear-gradient(180deg, #0c0312 0%, #200a2c 55%, #40145a 100%); }
+  #trail, #fx{ position:fixed; inset:0; width:100%; height:100%; display:block; }
   #trail, #fx{ z-index:0; pointer-events:none; }
-  #scene{ z-index:1; touch-action:none; cursor:pointer; opacity:0; transition:opacity 1.2s ease .1s; }
-  #scene.ready{ opacity:1; }
+  /* JS sizes this so the tower sits centred; everything inside is positioned as % of the photo */
+  #city{ position:fixed; z-index:1; left:50%; bottom:0; opacity:0; transition:opacity 1.2s ease .1s; pointer-events:none; user-select:none; -webkit-user-select:none; will-change:transform; }
+  #city.ready{ opacity:1; }
+  #city img{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  /* the lit photo is revealed by a growing circle centred on the tower */
+  #lit{ --r:0%; -webkit-mask-image:radial-gradient(circle at 50% 35%, #000 var(--r), transparent calc(var(--r) + 16%)); mask-image:radial-gradient(circle at 50% 35%, #000 var(--r), transparent calc(var(--r) + 16%)); }
+  /* firework light falling on the rooftops: only where there are buildings */
+  #tint{ position:absolute; inset:0; opacity:0; mix-blend-mode:screen; -webkit-mask:url(img/city-lit.webp) center/100% 100% no-repeat; mask:url(img/city-lit.webp) center/100% 100% no-repeat; }
+  /* the logo, on the blank panel in the photo */
+  #sign{ position:absolute; left:46.08%; top:21.56%; width:7.67%; height:19.04%; background:#08060c; display:grid; place-items:center; overflow:hidden; transition:box-shadow 1s ease; box-shadow:0 0 0 0 transparent; }
+  #sign svg{ width:88%; height:auto; display:block; opacity:.42; filter:saturate(.75); transition:opacity .9s ease, filter .9s ease; }
+  #sign.on svg{ opacity:1; filter:none; }
+  #sign.on{ box-shadow:0 0 34px 3px var(--sign-glow, rgba(229,26,77,.55)); }
   .pill{
     font:inherit; font-weight:500; font-size:15px; color:var(--ink);
     background:var(--pill); border:1px solid var(--pill-border); border-radius:999px;
@@ -84,6 +95,9 @@
   #sound[aria-pressed="false"] .on{ display:none; }
   #sound[aria-pressed="false"] .off{ display:block; }
   @media (prefers-reduced-motion: reduce){ #start::after{ animation:none; } }
+  :root[data-mood="marigold"]{ --sign-glow:rgba(255,160,60,.55); }
+  :root[data-mood="peacock"]{ --sign-glow:rgba(40,210,205,.5); }
+  :root[data-mood="rani"]{ --sign-glow:rgba(225,80,225,.55); }
 </style>
 </head>
 <body>
@@ -91,7 +105,12 @@
 <div class="sky" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></div>
 <canvas id="trail" aria-hidden="true"></canvas>
 <canvas id="fx" aria-hidden="true"></canvas>
-<canvas id="scene" aria-label="A night city with the Pocket FM tower in the middle. Tap the sky for fireworks."></canvas>
+<div id="city" role="img" aria-label="A night city with the Pocket FM tower in the middle. Tap the sky for fireworks.">
+  <img id="dark" src="img/city-dark.webp" alt="" draggable="false">
+  <img id="lit" src="img/city-lit.webp" alt="" draggable="false">
+  <div id="tint"></div>
+  <div id="sign"></div>
+</div>
 <button id="sound" class="pill" type="button" aria-pressed="true" aria-label="Sound">
   <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.5a7.8 7.8 0 0 1 0 11"/></svg>
   <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
@@ -100,16 +119,17 @@
 <p id="hint" aria-live="polite">Tap anywhere for more fireworks</p>
 <button id="again" class="pill" type="button">Light it up again</button>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (function(){
-  const LOGO_VIEWBOX = [23.1, 18.4, 60.4, 60.4];
   const LOGO_PATH = "M53.3252 18.4195C69.9933 18.4195 83.5054 31.9151 83.5054 48.5625C83.5054 65.2098 69.9933 78.7053 53.3252 78.7053C48.5397 78.7053 44.001 77.5926 39.9785 75.5941L23.1455 88.3269V48.5625V46.6258H23.2073C24.2181 30.8638 37.3175 18.4195 53.3252 18.4195Z M44.4342 39.1259H45.5898L55.4709 32.8417C55.6152 32.7593 55.8006 32.8005 55.8831 32.9242C55.966 33.0685 55.9243 33.254 55.8006 33.3364L46.7036 39.1259H62.1337C63.7427 39.1259 65.0424 40.424 65.0424 42.0309V53.3835C65.0424 54.9909 63.7427 56.2886 62.1337 56.2886H44.4548C42.8459 56.2886 41.5461 54.9909 41.5461 53.3835V42.0309C41.5255 40.424 42.8459 39.1259 44.4342 39.1259Z M60.5592 53.3855C61.7996 52.1462 61.7996 50.1374 60.5592 48.8982C59.3183 47.6594 57.307 47.6594 56.0666 48.8982C54.8257 50.1374 54.8257 52.1462 56.0666 53.3855C57.307 54.6248 59.3183 54.6248 60.5592 53.3855Z M51.3655 54.3313C52.1515 54.3313 52.7889 53.6947 52.7889 52.9099C52.7889 52.1247 52.1515 51.4881 51.3655 51.4881C50.5794 51.4881 49.942 52.1247 49.942 52.9099C49.942 53.6947 50.5794 54.3313 51.3655 54.3313Z M46.6418 54.3107C47.4254 54.3107 48.0652 53.6721 48.0652 52.8893C48.0652 52.106 47.4254 51.4675 46.6418 51.4675C45.8577 51.4675 45.2183 52.106 45.2183 52.8893C45.2183 53.6721 45.8577 54.3107 46.6418 54.3107Z M55.2231 42.2577H44.9087V45.2864H55.2231V42.2577Z M61.3502 42.2577H56.4817V45.2864H61.3502V42.2577Z M63.5984 37.6221C65.1043 37.7045 66.4247 38.7548 66.858 40.1973C66.8992 40.3622 66.8167 40.5271 66.6514 40.5683C66.4865 40.6096 66.3217 40.5271 66.2804 40.3622C65.909 39.1465 64.8364 38.2812 63.5572 38.1988C63.3923 38.1988 63.2687 38.0545 63.2687 37.8901C63.2893 37.7252 63.4335 37.6015 63.5984 37.6221Z M63.5778 36.3239H64.1553C66.3422 36.3239 68.116 38.0957 68.1366 40.2797C68.1366 40.4447 68.013 40.5683 67.8481 40.5683C67.6832 40.5683 67.5591 40.4447 67.5591 40.2797C67.5591 38.4255 66.0326 36.9212 64.1759 36.9212H63.5984C63.4335 36.9212 63.3099 36.798 63.3099 36.6331C63.2893 36.4476 63.4129 36.3239 63.5778 36.3239Z M63.5778 34.9639H64.011C66.8991 34.9639 69.2715 37.3335 69.2715 40.2179V40.2798C69.2715 40.4447 69.1479 40.5683 68.9825 40.5683C68.8177 40.5683 68.694 40.4447 68.694 40.2798V40.2179C68.694 37.6633 66.5895 35.5617 64.0317 35.5617H63.5984C63.4335 35.5617 63.3099 35.438 63.3099 35.2731C63.2893 35.0876 63.4129 34.9639 63.5778 34.9639Z";
   const TILE_PATH = "M0 15.7055C0 7.03161 7.0298 0 15.7015 0H91.2649C99.9366 0 106.966 7.03161 106.966 15.7055V91.2884C106.966 99.9622 99.9366 106.994 91.2649 106.994H15.7015C7.0298 106.994 0 99.9622 0 91.2884V15.7055Z";
   const WORD_PATH = "M155.18 51.9823C161.616 51.9823 164.855 49.1804 164.855 43.5558C164.855 37.9313 161.637 35.1288 155.18 35.1288H143.319V51.9823H155.18ZM135.233 78.2523C134.387 77.4071 133.953 76.2533 133.953 74.8113V32.3063C133.953 30.905 134.345 29.813 135.15 29.0302C135.954 28.2474 137.048 27.8763 138.45 27.8763H156.336C161.823 27.8763 166.072 29.2363 169.126 31.9764C172.179 34.7171 173.705 38.5492 173.705 43.494C173.705 48.4388 172.179 52.2709 169.126 55.0322C166.072 57.7929 161.802 59.173 156.336 59.173H143.319V74.7907C143.319 76.2326 142.886 77.3865 142.04 78.2317C141.194 79.0763 140.039 79.5087 138.595 79.5087C137.192 79.5087 136.078 79.0969 135.233 78.2523ZM202.73 69.7222C204.277 67.7855 205.061 64.9217 205.061 61.1514C205.061 57.4218 204.277 54.5787 202.73 52.6214C201.183 50.6641 198.955 49.6751 196.046 49.6751C193.137 49.6751 190.889 50.6641 189.321 52.6214C187.753 54.5787 186.949 57.4218 186.949 61.1514C186.949 64.9217 187.732 67.7855 189.28 69.7222C190.827 71.6589 193.055 72.6272 195.963 72.6272C198.934 72.6066 201.183 71.6589 202.73 69.7222ZM186.495 77.4071C183.751 75.9033 181.627 73.7605 180.141 70.9379C178.635 68.136 177.893 64.8599 177.893 61.1308C177.893 57.4012 178.635 54.1458 180.141 51.3644C181.647 48.5831 183.772 46.4402 186.495 44.9364C189.238 43.4321 192.415 42.6906 196.067 42.6906C199.697 42.6906 202.895 43.4321 205.618 44.9364C208.361 46.4402 210.466 48.5831 211.952 51.3644C213.437 54.1458 214.178 57.4012 214.178 61.1308C214.178 64.8599 213.437 68.136 211.952 70.9379C210.466 73.7399 208.361 75.9033 205.618 77.4071C202.874 78.9114 199.697 79.653 196.067 79.653C192.415 79.653 189.218 78.9114 186.495 77.4071ZM228.083 77.4071C225.401 75.9033 223.317 73.7811 221.873 71.0204C220.429 68.2596 219.686 65.0454 219.686 61.3571C219.686 57.6692 220.449 54.4137 221.976 51.5912C223.503 48.7686 225.649 46.5639 228.414 45.0189C231.176 43.4734 234.353 42.6906 237.943 42.6906C239.841 42.6906 241.739 42.9585 243.658 43.494C245.575 44.0299 247.246 44.7504 248.711 45.678C250.258 46.6876 251.042 47.9853 251.042 49.5308C251.042 50.6022 250.795 51.4469 250.279 52.106C249.763 52.7656 249.103 53.095 248.277 53.095C247.741 53.095 247.184 52.9713 246.606 52.7244C246.029 52.4771 245.451 52.1885 244.854 51.8591C243.782 51.2201 242.771 50.7259 241.801 50.3755C240.831 50.0049 239.718 49.84 238.459 49.84C235.447 49.84 233.136 50.8285 231.506 52.7863C229.876 54.7436 229.073 57.5661 229.073 61.254C229.073 64.8805 229.876 67.6825 231.506 69.6398C233.136 71.5971 235.447 72.586 238.459 72.586C239.676 72.586 240.749 72.4005 241.698 72.0506C242.647 71.6795 243.699 71.1848 244.854 70.5669C245.575 70.134 246.214 69.8047 246.751 69.5779C247.287 69.3517 247.824 69.2486 248.36 69.2486C249.144 69.2486 249.784 69.5779 250.32 70.2577C250.856 70.9379 251.125 71.7826 251.125 72.7921C251.125 73.6162 250.939 74.3377 250.588 74.935C250.217 75.5323 249.639 76.0888 248.814 76.5625C247.308 77.5308 245.575 78.293 243.575 78.8496C241.595 79.4056 239.552 79.6942 237.468 79.6942C233.879 79.653 230.763 78.9114 228.083 77.4071ZM290.217 75.1612C290.217 76.2739 289.825 77.2628 289.02 78.1492C288.216 79.0145 287.287 79.4469 286.215 79.4469C285.142 79.4469 284.151 79.0145 283.223 78.1492L266.204 62.7583V75.1818C266.204 76.5831 265.771 77.6545 264.904 78.3755C264.038 79.0969 262.945 79.4675 261.624 79.4675C260.326 79.4675 259.233 79.0969 258.387 78.3755C257.541 77.6545 257.108 76.5831 257.108 75.1818V31.812C257.108 30.4108 257.541 29.3394 258.387 28.6184C259.233 27.8974 260.306 27.5264 261.624 27.5264C262.924 27.5264 264.017 27.8974 264.904 28.6184C265.771 29.3394 266.204 30.4108 266.204 31.812V59.1112L281.758 44.215C282.625 43.3497 283.615 42.9173 284.75 42.9173C285.864 42.9173 286.833 43.3291 287.659 44.1531C288.484 44.9777 288.897 45.9455 288.897 47.0582C288.897 48.1708 288.443 49.1804 287.514 50.1075L276.107 60.7185L288.752 72.0506C289.722 72.9571 290.217 73.9872 290.217 75.1612ZM305.235 51.4056C303.749 52.9512 302.862 55.176 302.573 58.081H319.015C318.912 55.1347 318.189 52.8893 316.828 51.3644C315.466 49.84 313.588 49.0773 311.154 49.0773C308.678 49.0773 306.7 49.8606 305.235 51.4056ZM325.738 70.2989C326.254 70.9379 326.502 71.7826 326.502 72.8334C326.502 74.3377 325.594 75.5941 323.82 76.6037C322.171 77.5308 320.314 78.2729 318.23 78.829C316.147 79.385 314.166 79.6736 312.268 79.6736C306.555 79.6736 302.016 78.0255 298.674 74.7288C295.332 71.4321 293.661 66.9409 293.661 61.2128C293.661 57.5867 294.382 54.3725 295.847 51.5499C297.312 48.748 299.355 46.5639 301.996 45.0189C304.636 43.4734 307.628 42.6906 310.968 42.6906C314.166 42.6906 316.951 43.3909 319.324 44.7917C321.697 46.1929 323.531 48.1914 324.851 50.7465C326.172 53.3217 326.811 56.3298 326.811 59.8326C326.811 61.9136 325.883 62.9639 324.046 62.9639H302.594C302.883 66.3018 303.832 68.7539 305.421 70.3401C307.03 71.9063 309.339 72.7097 312.392 72.7097C313.939 72.7097 315.321 72.5242 316.497 72.133C317.694 71.7413 319.035 71.2054 320.541 70.5256C321.986 69.7428 323.058 69.3718 323.737 69.3718C324.562 69.3517 325.223 69.6604 325.738 70.2989ZM355.794 76.027C355.794 77.1809 355.32 78.0668 354.373 78.6847C353.424 79.2825 352.083 79.5499 350.329 79.4469L348.369 79.3031C340.219 78.7259 336.157 74.3578 336.157 66.24V50.4167H332.526C331.226 50.4167 330.215 50.1281 329.514 49.5514C328.812 48.9747 328.461 48.1296 328.461 47.0169C328.461 45.9043 328.812 45.0601 329.514 44.4829C330.215 43.9063 331.226 43.6177 332.526 43.6177H336.157V36.8805C336.157 35.5823 336.57 34.5315 337.395 33.7482C338.22 32.9659 339.332 32.5948 340.735 32.5948C342.097 32.5948 343.19 32.986 344.016 33.7482C344.841 34.5315 345.254 35.5617 345.254 36.8805V43.5558H351.443C352.743 43.5558 353.754 43.8444 354.455 44.4211C355.154 44.9983 355.505 45.8425 355.505 46.9551C355.505 48.0677 355.154 48.9129 354.455 49.4896C353.754 50.0668 352.743 50.3549 351.443 50.3549H345.254V66.8378C345.254 70.4226 346.904 72.3387 350.205 72.5654L352.165 72.7097C354.579 72.9158 355.794 73.9872 355.794 76.027ZM382.304 78.211C381.458 77.3453 381.025 76.212 381.025 74.7907V32.3063C381.025 30.905 381.417 29.813 382.221 29.0302C383.026 28.2474 384.119 27.8763 385.522 27.8763H411.039C413.989 27.8763 415.475 29.1333 415.475 31.6471C415.475 34.1193 413.989 35.3556 411.039 35.3556H390.245V49.3041H409.595C412.545 49.3041 414.031 50.561 414.031 53.0744C414.031 55.547 412.545 56.7833 409.595 56.7833H390.245V74.7907C390.245 76.1914 389.832 77.3247 389.007 78.211C388.182 79.0763 387.067 79.5087 385.666 79.5087C384.264 79.5087 383.15 79.0763 382.304 78.211ZM470.966 28.7828C471.791 29.628 472.203 30.7612 472.203 32.162V75.1612C472.203 76.5212 471.81 77.5926 471.05 78.3548C470.265 79.1382 469.254 79.5087 467.993 79.5087C466.737 79.5087 465.745 79.1175 465.005 78.3548C464.283 77.572 463.91 76.5212 463.91 75.1612V45.2452L451.553 68.6302C450.976 69.7016 450.336 70.4844 449.655 70.9998C448.974 71.5146 448.172 71.762 447.264 71.762C446.336 71.762 445.551 71.5146 444.871 71.041C444.19 70.5669 443.571 69.7634 442.972 68.6508L430.534 45.6368V75.2025C430.534 76.5006 430.162 77.572 429.399 78.3548C428.657 79.1588 427.645 79.5499 426.387 79.5499C425.129 79.5499 424.138 79.1588 423.396 78.3961C422.673 77.6133 422.302 76.5625 422.302 75.2025V32.162C422.302 30.7612 422.694 29.628 423.499 28.7828C424.303 27.9386 425.376 27.5058 426.738 27.5058C428.636 27.5058 430.101 28.5566 431.173 30.6375L447.305 61.3571L463.375 30.6375C464.445 28.5566 465.868 27.5058 467.664 27.5058C469.048 27.5264 470.142 27.9386 470.966 28.7828Z";
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const canvas = document.getElementById('scene');
+  const city = document.getElementById('city');
+  const litImg = document.getElementById('lit');
+  const tintEl = document.getElementById('tint');
+  const signEl = document.getElementById('sign');
   const startBtn = document.getElementById('start');
   const againBtn = document.getElementById('again');
   const hint = document.getElementById('hint');
@@ -132,170 +152,40 @@
     tctx.lineCap = 'round';
   }
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  const maxAniso = renderer.capabilities.getMaxAnisotropy();
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x2e0519, 42, 92);
-  const camera = new THREE.PerspectiveCamera(36, 1, .1, 220);
-  const CAM = { x:0, y:2.5, z:46, lookY:13 };
-
-  function tex(w, h, draw, repeat){
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    draw(c.getContext('2d'), w, h);
-    const t = new THREE.CanvasTexture(c);
-    t.encoding = THREE.sRGBEncoding;
-    t.anisotropy = maxAniso;
-    if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    return t;
-  }
-
-  // ---------- The city ----------
-  let seed = 2026;
-  const rand = () => (seed = seed * 16807 % 2147483647) / 2147483647;
-  // walls and windows: 8 x 8 windows per tile, each about .6 of a world unit
-  function windowSheets(density){
-    const lit = [];
-    for (let i = 0; i < 64; i++) lit.push(rand() < density ? ['#ffd28a', '#ffc070', '#ffe6b0', '#ff9f5a', '#bfe6ff'][(rand() * 5) | 0] : null);
-    const each = (ctx, draw) => { for (let i = 0; i < 64; i++) draw(ctx, (i % 8) * 32, ((i / 8) | 0) * 32, lit[i]); };
-    return {
-      map:tex(256, 256, (c) => {
-        c.fillStyle = '#2a1b30'; c.fillRect(0, 0, 256, 256);
-        each(c, (x, px, py) => { x.fillStyle = '#120a1a'; x.fillRect(px + 7, py + 6, 18, 21); });
-      }, true),
-      glow:tex(256, 256, (c) => {
-        c.fillStyle = '#000'; c.fillRect(0, 0, 256, 256);
-        each(c, (x, px, py, col) => { if (col){ x.fillStyle = col; x.fillRect(px + 7, py + 6, 18, 21); } });
-      }, true)
-    };
-  }
-  const sheets = [windowSheets(.3), windowSheets(.42), windowSheets(.55)];
-  const buildings = [], roofs = [];
-  function block(x, y, z, w, h, d, sheet, tint, delay){
-    const g = new THREE.BoxGeometry(w, h, d), uv = g.attributes.uv;
-    for (let f = 0; f < 6; f++){
-      const su = (f < 2 ? d : w) / 5, sv = (f === 2 || f === 3 ? 0 : h / 5);
-      for (let v = f * 4; v < f * 4 + 4; v++) uv.setXY(v, uv.getX(v) * su, sv ? uv.getY(v) * sv : .02);
-    }
-    const m = new THREE.MeshStandardMaterial({ map:sheet.map, emissiveMap:sheet.glow, emissive:0xffffff, emissiveIntensity:.1, roughness:.8, color:tint });
-    const mesh = new THREE.Mesh(g, m);
-    mesh.position.set(x, y + h / 2, z);
-    scene.add(mesh);
-    buildings.push({ m, delay });
-    return mesh;
-  }
-  function row(z, tint, hMin, hMax, skip){
-    let x = -46;
-    while (x < 46){
-      const w = 3.6 + rand() * 3.6, cx = x + w / 2;
-      if (Math.abs(cx) > skip){
-        const out = Math.min(1, Math.abs(cx) / 34), h = hMin + rand() * (hMax - hMin) * (.55 + out * .45);
-        block(cx, -1, z, w, h, 5, sheets[(rand() * 3) | 0], tint, .5 + Math.abs(cx) * .05);
-        if (rand() < .5) block(cx, h - 1, z, w * .55, 1 + rand() * 1.6, 3, sheets[0], tint, .5 + Math.abs(cx) * .05);
-        if (h > hMin + (hMax - hMin) * .6) roofs.push(new THREE.Vector3(cx, h, z));
-      }
-      x += w + rand() * .5;
-    }
-  }
-  row(-24, 0x8a7a96, 12, 21, 0);
-  row(-12, 0xa08ea8, 8, 15, 5);
-  row(1, 0xc4b4cc, 4, 10, 6.4);
-
-  // the Pocket FM tower
-  const TZ = 6, TW = 7.4, TH = 14.5, FRONT = TZ + TW / 2;
-  block(0, -1, TZ, TW + 3, 3.4, TW + 3, sheets[1], 0xe8d8e8, .1);
-  block(0, 2.4, TZ, TW, TH - 2.4, TW, sheets[2], 0xe8d8e8, .1);
-  block(0, TH, TZ, TW * .68, 1.5, TW * .68, sheets[0], 0xe8d8e8, .1);
-  const spire = new THREE.Mesh(new THREE.ConeGeometry(.3, 3.6, 10), new THREE.MeshStandardMaterial({ color:0x4a3a50, roughness:.5 }));
-  spire.position.set(0, TH + 3.3, TZ);
-  scene.add(spire);
-  const tip = new THREE.Mesh(new THREE.SphereGeometry(.16, 10, 8), new THREE.MeshBasicMaterial({ color:0xff3355 }));
-  tip.position.set(0, TH + 5.15, TZ);
-  scene.add(tip);
-  roofs.push(new THREE.Vector3(-TW / 2 + .4, TH, FRONT - .4), new THREE.Vector3(TW / 2 - .4, TH, FRONT - .4));
-
-  // logo sign: dark panel, then the tile and wordmark
-  const SIGN_Y = 9.9, SIGN = 5.9;
-  const tilePath = new Path2D(TILE_PATH), wordPath = new Path2D(WORD_PATH), markPath = new Path2D(LOGO_PATH);
-  const signMap = tex(1024, 1024, (c) => {
-    c.fillStyle = '#0d0612'; c.fillRect(0, 0, 1024, 1024);
-    c.save(); c.translate(512 - 330, 70); c.scale(660 / 107, 660 / 107);
-    c.fillStyle = '#E51A4D'; c.fill(tilePath);
-    c.fillStyle = '#fff'; c.fill(markPath, 'evenodd');
-    c.restore();
-    c.save(); c.translate(512 - 435, 760); c.scale(870 / 342, 870 / 342); c.translate(-133, -26);
-    c.fillStyle = '#fff'; c.fill(wordPath, 'evenodd');
-    c.restore();
-  });
-  const matSign = new THREE.MeshStandardMaterial({ map:signMap, emissiveMap:signMap, emissive:0xffffff, emissiveIntensity:.35, roughness:.6 });
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(SIGN, SIGN), matSign);
-  sign.position.set(0, SIGN_Y, FRONT + .03);
-  scene.add(sign);
-
-  // light strips up the tower's corners and around the roof; these run with the show
-  const matLed = new THREE.MeshBasicMaterial({ color:0x000000 });
-  [[-TW / 2, 0], [TW / 2, 0]].forEach(([x]) => {
-    const s = new THREE.Mesh(new THREE.BoxGeometry(.14, TH - 2.4, .14), matLed);
-    s.position.set(x, 2.4 + (TH - 2.4) / 2, FRONT); scene.add(s);
-  });
-  const roofLed = new THREE.Mesh(new THREE.BoxGeometry(TW + .14, .14, .14), matLed);
-  roofLed.position.set(0, TH, FRONT); scene.add(roofLed);
-  const baseLed = new THREE.Mesh(new THREE.BoxGeometry(TW + .14, .14, .14), matLed);
-  baseLed.position.set(0, 2.4, FRONT); scene.add(baseLed);
-
-  // garlands of lights strung out from the tower
-  const garland = [];
-  [[-1, 12.5, 15], [1, 12.5, 15], [-1, 7, 24], [1, 7, 24]].forEach(([dir, y0, reach]) => {
-    for (let i = 0; i <= 34; i++){
-      const t = i / 34;
-      garland.push([dir * (TW / 2 + t * reach), y0 - t * 4.2 - Math.sin(t * Math.PI) * 1.5, FRONT - t * 4]);
-    }
-  });
-  const matBulb = new THREE.MeshBasicMaterial({ color:0x000000 });
-  const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(.085, 6, 5), matBulb, garland.length);
-  const dummy = new THREE.Object3D();
-  garland.forEach((p, i) => { dummy.position.set(p[0], p[1], p[2]); dummy.updateMatrix(); bulbs.setMatrixAt(i, dummy.matrix); });
-  scene.add(bulbs);
-
-  const hemi = new THREE.HemisphereLight(0xb8a0d8, 0x200810, .5);
-  scene.add(hemi);
-  const moon = new THREE.DirectionalLight(0xc0c8ff, .35);
-  moon.position.set(-12, 24, 30);
-  scene.add(moon);
-  // fireworks light the city: one light that jumps to wherever the last burst was
-  const flashLight = new THREE.PointLight(0xffffff, 0, 110, 1.3);
-  flashLight.position.set(0, 26, 34);
-  scene.add(flashLight);
-  let flashLevel = 0, shake = 0;
-  function cityFlash(r, g, b, depth, x){
-    if (depth * 1 < flashLevel * .6) return;
-    flashLevel = depth;
-    flashLight.color.setRGB(r, g, b);
-    flashLight.position.x = (x / FW - .5) * 60;
-    shake = Math.min(1, shake + .35 * depth);
-  }
-
-  const topPoint = new THREE.Vector3(0, 4.9, FRONT);
+  // ---------- The city: a photo, placed so the tower is centred and its foot runs off the bottom ----------
+  const PHOTO_W = 1942, PHOTO_H = 809;
+  const plate = { w:1, h:1, top:0, left:0 };
+  const SIGN_FOOT_Y = 412; // photo pixels: where the button sits, on the tower under the sign
   function resize(){
-    const w = window.innerWidth, h = window.innerHeight;
-    canvas.style.height = fx.style.height = trail.style.height = h + 'px';
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    // phones sit a touch further back so the tower and its neighbours both fit
-    CAM.z = w / h < .8 ? 53 : 46;
-    camera.position.set(CAM.x, CAM.y, CAM.z);
-    camera.lookAt(0, CAM.lookY, 0);
-    camera.updateProjectionMatrix();
-    camera.updateMatrixWorld();
     sizeFx();
-    const p = topPoint.clone().project(camera);
-    startBtn.style.top = ((1 - p.y) / 2 * h) + 'px';
+    plate.w = Math.max(FW * 1.25, FH * 1.9);
+    plate.h = plate.w * PHOTO_H / PHOTO_W;
+    const sink = plate.h * .1; // the very front rooftops drop out of view
+    plate.top = FH + sink - plate.h;
+    plate.left = (FW - plate.w) / 2;
+    city.style.width = plate.w + 'px';
+    city.style.height = plate.h + 'px';
+    city.style.marginLeft = -plate.w / 2 + 'px';
+    city.style.bottom = -sink + 'px';
+    startBtn.style.top = (plate.top + SIGN_FOOT_Y / PHOTO_H * plate.h) + 'px';
   }
+  const px2 = (p) => [plate.left + p[0] / PHOTO_W * plate.w, plate.top + p[1] / PHOTO_H * plate.h];
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', () => setTimeout(resize, 250));
   resize();
+
+  // the sign is drawn as vector art so it stays sharp over the photo
+  signEl.innerHTML = '<svg viewBox="0 0 400 390" aria-hidden="true"><g transform="translate(76 0) scale(2.32)"><path d="' + TILE_PATH + '" fill="#E51A4D"/><path fill-rule="evenodd" d="' + LOGO_PATH + '" fill="#fff"/></g><g transform="translate(-120 300) scale(1.05) translate(0 -26)"><path fill-rule="evenodd" d="' + WORD_PATH + '" fill="#fff"/></g></svg>';
+
+  // fireworks light the rooftops: colour falling from above, fading fast
+  let flashLevel = 0, shake = 0, flashCol = '255,255,255';
+  function cityFlash(r, g, b, depth){
+    if (depth < flashLevel * .6) return;
+    flashLevel = depth;
+    flashCol = Math.round(r * 255) + ',' + Math.round(g * 255) + ',' + Math.round(b * 255);
+    tintEl.style.background = 'linear-gradient(180deg, rgba(' + flashCol + ',.85) 8%, rgba(' + flashCol + ',.3) 45%, rgba(' + flashCol + ',0) 80%)';
+    shake = Math.min(1, shake + .3 * depth);
+  }
 
   // ---------- Sound (synthesised, no files) ----------
   const sfx = (function(){
@@ -510,14 +400,14 @@
 
   // ---------- Colour themes: every user firework moves the whole scene to the next one ----------
   const THEMES = [
-    { name:'sindoor',  glow:[229, 26, 77],  soft:[255, 150, 170], fog:[46, 5, 25], shells:['255,70,110', '255,212,130', '255,245,235'] },
-    { name:'marigold', glow:[255, 140, 30], soft:[255, 205, 120], fog:[49, 21, 6], shells:['255,170,50', '255,232,165', '255,95,60'] },
-    { name:'peacock',  glow:[20, 190, 190], soft:[130, 240, 225], fog:[6, 34, 49], shells:['45,228,212', '125,175,255', '255,222,135'] },
-    { name:'rani',     glow:[215, 50, 215], soft:[250, 150, 240], fog:[43, 6, 55], shells:['242,85,232', '175,115,255', '255,205,232'] }
+    { name:'sindoor',  glow:[229, 26, 77],  soft:[255, 150, 170], shells:['255,70,110', '255,212,130', '255,245,235'] },
+    { name:'marigold', glow:[255, 140, 30], soft:[255, 205, 120], shells:['255,170,50', '255,232,165', '255,95,60'] },
+    { name:'peacock',  glow:[20, 190, 190], soft:[130, 240, 225], shells:['45,228,212', '125,175,255', '255,222,135'] },
+    { name:'rani',     glow:[215, 50, 215], soft:[250, 150, 240], shells:['242,85,232', '175,115,255', '255,205,232'] }
   ];
   const skyLayers = document.querySelectorAll('.sky i');
   let theme = 0, lastThemeAt = -9;
-  const tone = { glow:THEMES[0].glow.slice(), soft:THEMES[0].soft.slice(), fog:THEMES[0].fog.slice() };
+  const tone = { glow:THEMES[0].glow.slice(), soft:THEMES[0].soft.slice() };
   const rgb = (c) => (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0);
   function setTheme(i){
     if (i === theme) return;
@@ -531,9 +421,7 @@
     for (let i = 0; i < 3; i++){
       tone.glow[i] += (t.glow[i] - tone.glow[i]) * k;
       tone.soft[i] += (t.soft[i] - tone.soft[i]) * k;
-      tone.fog[i] += (t.fog[i] - tone.fog[i]) * k;
     }
-    scene.fog.color.setRGB(tone.fog[0] / 255, tone.fog[1] / 255, tone.fog[2] / 255);
   }
 
   // ---------- Sky: twinkling stars, sparkles, the odd shooting star ----------
@@ -666,7 +554,7 @@
   function launchAt(x, y, user, opts){
     opts = opts || {};
     const depth = opts.depth || 1, vol = opts.vol === undefined ? 1 : opts.vol;
-    y = Math.min(y, FH * .58);
+    y = Math.min(y, plate.top + plate.h * .36);
     const sx = x + (Math.random() - .5) * 70;
     const life = (.6 + Math.random() * .2) * (.85 + depth * .15);
     const burst = pickBurst(opts.force);
@@ -1044,23 +932,22 @@
 
   // ---------- Searchlights: beams from the rooftops, swinging with the music ----------
   const BEAT = 60 / 107.7;
-  const beamRoofs = roofs.slice().sort((a, b) => Math.abs(a.x) - Math.abs(b.x)).slice(0, 8);
-  const beams = beamRoofs.map((p, i) => ({ p, ph:i * 1.3, sp:.5 + (i % 3) * .17, lean:p.x / 40 }));
-  const v = new THREE.Vector3();
+  // rooftops in the photo, in photo pixels, nearest the tower first
+  const beamRoofs = [[885, 150], [1050, 150], [640, 412], [1300, 366], [485, 350], [1672, 352], [96, 322], [1872, 362]];
+  const beams = beamRoofs.map((p, i) => ({ p, ph:i * 1.3, sp:.5 + (i % 3) * .17, lean:(p[0] - PHOTO_W / 2) / PHOTO_W * 1.4 }));
   let beamLevel = 0;
   function drawBeams(t){
     if (beamLevel < .02) return;
     fctx.globalCompositeOperation = 'lighter';
     const col = rgb(tone.soft), pulse = .7 + .3 * Math.pow(Math.abs(Math.cos(t * Math.PI / BEAT)), 3);
     for (const b of beams){
-      v.copy(b.p).project(camera);
-      const x = (v.x + 1) / 2 * FW, y = (1 - v.y) / 2 * FH;
+      const [x, y] = px2(b.p);
       const a = b.lean * .6 + Math.sin(t * b.sp + b.ph) * .5;
       const len = FH * 1.15, spread = .055;
       const ex = Math.sin(a), ey = -Math.cos(a), px = -ey * len * spread, py = ex * len * spread;
       const tx = x + ex * len, ty = y + ey * len;
       const g = fctx.createLinearGradient(x, y, tx, ty);
-      g.addColorStop(0, 'rgba(' + col + ',' + (.3 * beamLevel * pulse).toFixed(3) + ')');
+      g.addColorStop(0, 'rgba(' + col + ',' + (.2 * beamLevel * pulse).toFixed(3) + ')');
       g.addColorStop(1, 'rgba(' + col + ',0)');
       fctx.fillStyle = g;
       fctx.beginPath(); fctx.moveTo(x, y); fctx.lineTo(tx + px, ty + py); fctx.lineTo(tx - px, ty - py); fctx.closePath(); fctx.fill();
@@ -1075,8 +962,7 @@
     for (let i = fountains.length - 1; i >= 0; i--){
       const f = fountains[i];
       if (time > f.until){ fountains.splice(i, 1); continue; }
-      v.copy(f.p).project(camera);
-      const x = (v.x + 1) / 2 * FW, y = (1 - v.y) / 2 * FH, n = Math.ceil(dt * (reduce ? 40 : 130));
+      const [x, y] = px2(f.p), n = Math.ceil(dt * (reduce ? 40 : 130));
       const u = unit();
       for (let k = 0; k < n; k++){
         const a = (Math.random() - .5) * .42, s = (240 + Math.random() * 190) * u;
@@ -1088,10 +974,10 @@
   // ---------- The show ----------
   const nextT = -1;
   const shell = (type, xf, yf, o) => () => launchAt(xf * FW, yf * FH, false, { force:type, depth:.9, vol:.7, ...o });
-  const say = (lines) => () => launchAt(FW / 2, FH * .26, false, { force:'text', text:lines, vol:.9, theme:nextT });
+  const say = (lines) => () => launchAt(FW / 2, FH * .17, false, { force:'text', text:lines, vol:.9, theme:nextT });
   function buildShow(){
     const ev = [], at = (t, fn) => ev.push({ t, fn }), B = BEAT, thin = reduce ? 2 : 1;
-    const R = () => .08 + Math.random() * .84, Y = () => .1 + Math.random() * .36;
+    const R = () => .08 + Math.random() * .84, Y = () => .08 + Math.random() * .28;
     const mix = ['chrysanthemum', 'dahlia', 'peony', 'palm', 'ring', 'crossette', 'glitter', 'saturn', 'pistil', 'fish', 'willow'];
     const pick = (a) => a[(Math.random() * a.length) | 0];
     const wide = FW > FH;
@@ -1105,13 +991,13 @@
     // 4. shapes, in pairs
     const pairs = [['heart', 'star'], ['rangoli', 'diya'], ['spiral', 'saturn'], ['rangoli', 'heart'], ['star', 'diya']];
     pairs.forEach((p, i) => {
-      at(11 + i * 2 * B * 1.5, shell(p[0], .27, .26, { theme:nextT, depth:1 }));
-      at(11.5 + i * 2 * B * 1.5, shell(p[1], .73, .3, { depth:1 }));
+      at(11 + i * 2 * B * 1.5, shell(p[0], .25, .2, { theme:nextT, depth:1 }));
+      at(11.5 + i * 2 * B * 1.5, shell(p[1], .75, .23, { depth:1 }));
     });
     // 5. a fan out of the tower, then gold crowns
     for (let i = 0; i < 7; i += thin) at(20 + i * .13, shell('kamuro', .5 + (i - 3) * .13, .2 + Math.abs(i - 3) * .03, { theme:i === 0 ? nextT : undefined }));
     // 6. the logo
-    at(23.3, shell('bubble', .5, .26, { theme:nextT, depth:1, vol:1 }));
+    at(23.3, shell('bubble', .5, .2, { theme:nextT, depth:1, vol:1 }));
     // 7. a barrage
     for (let i = 0; i < 26; i += thin) at(24.6 + i * .22, shell(pick(mix), R(), Y(), { depth:.55 + Math.random() * .45, vol:.5, theme:i % 8 === 0 ? nextT : undefined }));
     at(26, () => beamRoofs.forEach((p) => fountain(p, 4, THEMES[theme].shells[1])));
@@ -1123,7 +1009,7 @@
     at(38.2, finishShow);
     return ev.sort((a, b) => a.t - b.t);
   }
-  let show = null, showT = 0, showIdx = 0, started = false;
+  let show = null, showT = 0, showIdx = 0, started = false, reveal = 0;
   function startShow(){
     sfx.unlock();
     started = true;
@@ -1133,6 +1019,8 @@
     haptics.play([[0, 14], [84, 10], [144, 45]]);
     startBtn.classList.add('gone');
     startBtn.setAttribute('tabindex', '-1');
+    signEl.classList.add('on');
+    reveal = Math.max(reveal, .001);
     againBtn.classList.remove('on');
     hint.classList.add('on');
     show = buildShow(); showT = 0; showIdx = 0;
@@ -1167,7 +1055,8 @@
     soundBtn.setAttribute('aria-label', m ? 'Sound off' : 'Sound on');
   });
   // every tap is a firework, and the sky turns with it
-  canvas.addEventListener('pointerdown', (e) => {
+  document.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
     sfx.unlock();
     launchAt(e.clientX, e.clientY, true, { force:BURST_TYPES[(Math.random() * BURST_TYPES.length) | 0] });
   });
@@ -1187,27 +1076,23 @@
     easeTheme(dt);
     beamLevel += ((show ? 1 : started ? .4 : 0) - beamLevel) * (1 - Math.exp(-2 * dt));
 
-    // windows switch on in a wave from the tower outward
-    for (const b of buildings){
-      const target = started && (show ? showT > b.delay : true) ? 1.05 : .13;
-      b.m.emissiveIntensity += (target - b.m.emissiveIntensity) * (1 - Math.exp(-5 * dt));
+    // the lights come on in a wave from the tower outward
+    if (reveal > 0 && reveal < 1){
+      reveal = Math.min(1, reveal + dt / (reduce ? .6 : 2.4));
+      litImg.style.setProperty('--r', (reveal * 135 - 16).toFixed(1) + '%');
+      if (reveal >= 1) litImg.style.webkitMaskImage = litImg.style.maskImage = 'none';
     }
-    const beat = Math.pow(Math.abs(Math.cos(time * Math.PI / BEAT)), 2);
-    matSign.emissiveIntensity = .34 + state.lit * (.62 + (show ? beat * .12 : 0));
-    const ledOn = state.lit * (show ? .55 + beat * .45 : .75);
-    matLed.color.setRGB(tone.soft[0] / 255 * ledOn, tone.soft[1] / 255 * ledOn, tone.soft[2] / 255 * ledOn);
-    matBulb.color.setRGB(1 * state.lit + .06, .78 * state.lit + .04, .42 * state.lit + .02);
-    tip.material.color.setRGB(.5 + .5 * Math.max(0, Math.sin(time * 3)), .08, .16);
-    hemi.intensity = .5 + state.lit * .25;
 
-    // burst light and a little camera movement
-    flashLevel *= Math.exp(-5 * dt);
-    flashLight.intensity = flashLevel * 3.4;
+    // firework light on the rooftops, and a very slight shake and drift
+    flashLevel *= Math.exp(-5.5 * dt);
+    const op = Math.min(.5, flashLevel * .5).toFixed(3);
+    if (op !== lastOp){ tintEl.style.opacity = op; lastOp = op; }
     shake *= Math.exp(-7 * dt);
-    const drift = reduce ? 0 : Math.sin(time * .13) * .5;
-    camera.position.x = drift + px * 2.2 + (reduce ? 0 : (Math.random() - .5) * shake * .14);
-    camera.position.y = CAM.y + (reduce ? 0 : (Math.random() - .5) * shake * .14);
-    camera.lookAt(0, CAM.lookY, 0);
+    if (!reduce){
+      const dx = Math.sin(time * .13) * 5 + px * -14 + (Math.random() - .5) * shake * 3;
+      const dy = (Math.random() - .5) * shake * 3;
+      city.style.transform = 'translate3d(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px,0)';
+    }
 
     const skyOp = (.35 + state.lit * .65).toFixed(3);
     if (skyOp !== lastSkyOp){ skyEl.style.opacity = skyOp; lastSkyOp = skyOp; }
@@ -1223,13 +1108,13 @@
     drawBeams(time);
     drawFx(time);
 
-    renderer.render(scene, camera);
     requestAnimationFrame(frame);
   }
   const skyEl = document.querySelector('.sky');
-  let lastSkyOp = '';
+  let lastSkyOp = '', lastOp = '';
   requestAnimationFrame(frame);
-  requestAnimationFrame(() => canvas.classList.add('ready'));
+  // show the city once both photos are ready, so it never pops in half-loaded
+  Promise.all([...city.querySelectorAll('img')].map((i) => (i.decode ? i.decode().catch(() => {}) : null))).then(() => city.classList.add('ready'));
 })();
 </script>
 </body>
