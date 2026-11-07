@@ -9,49 +9,45 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Pocket FM">
 <meta property="og:title" content="Here’s to brighter stories. Happy Diwali from Pocket FM">
-<meta property="og:description" content="Light the lantern, then tap anywhere for fireworks.">
+<meta property="og:description" content="Light the lantern. Every firework changes the sky.">
 <meta property="og:image" content="https://idevsr.github.io/pocketfm-diwali/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The Pocket FM logo above Here’s to brighter stories, beside a glowing purple paper lantern with fireworks.">
+<meta property="og:image:alt" content="The Pocket FM logo above Here’s to brighter stories, beside a glowing red paper lantern with fireworks.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Here’s to brighter stories. Happy Diwali from Pocket FM">
-<meta name="twitter:description" content="Light the lantern, then tap anywhere for fireworks.">
+<meta name="twitter:description" content="Light the lantern. Every firework changes the sky.">
 <meta name="twitter:image" content="https://idevsr.github.io/pocketfm-diwali/og.jpg">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪔</text></svg>">
-<meta name="theme-color" content="#08021a">
+<meta name="theme-color" content="#0e020a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Allura&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --sky-top:#24105e;
-    --sky-mid:#140838;
-    --sky-bottom:#060218;
-    --ink:#f7f1ff;
-    --ink-soft:rgba(247,241,255,.66);
+    --ink:#fff4ee;
+    --ink-soft:rgba(255,240,232,.72);
+    --h1-glow:rgba(229,26,77,.6);
     --pill:rgba(255,255,255,.08);
     --pill-hover:rgba(255,255,255,.16);
-    --pill-border:rgba(214,190,255,.35);
-    --focus:#d6beff;
+    --pill-border:rgba(255,200,190,.35);
+    --focus:#ffd27a;
     color-scheme: dark;
     box-sizing:border-box;
     padding-top:env(safe-area-inset-top,0px);
     padding-bottom:env(safe-area-inset-bottom,0px);
   }
-  /* The scene is a night sky in both modes, so dark values match light ones. */
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){ --sky-top:#24105e; --sky-mid:#140838; --sky-bottom:#060218; --ink:#f7f1ff; }
-  }
-  :root[data-theme="dark"]{ --sky-top:#24105e; --sky-mid:#140838; --sky-bottom:#060218; --ink:#f7f1ff; }
+  :root[data-mood="marigold"]{ --h1-glow:rgba(255,140,30,.6); }
+  :root[data-mood="peacock"]{ --h1-glow:rgba(20,190,190,.55); }
+  :root[data-mood="rani"]{ --h1-glow:rgba(215,50,215,.6); }
   html{ scroll-padding-top:env(safe-area-inset-top,0px); }
   html,body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; }
   body{
-    /* unlit: a deep, near-black purple night */
-    background:radial-gradient(140% 100% at 60% 40%, #10052b 0%, #08021a 55%, #030010 100%);
-    background-color:#030010;
+    /* unlit: a deep, near-black wine night */
+    background:radial-gradient(140% 100% at 60% 40%, #1c0512 0%, #0e020a 55%, #060005 100%);
+    background-color:#060005;
     color:var(--ink);
-    font-family:"Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family:"DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing:antialiased;
     -webkit-tap-highlight-color:transparent;
   }
@@ -62,14 +58,16 @@
     opacity:.07; mix-blend-mode:soft-light;
   }
   /* lit sky: fades in with the lantern's light (opacity driven from the render loop) */
-  .sky{
-    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0;
-    background:
-      radial-gradient(90% 60% at 50% 42%, rgba(70,24,150,.55) 0%, rgba(70,24,150,0) 70%),
-      radial-gradient(140% 100% at 50% 40%, var(--sky-top) 0%, var(--sky-mid) 50%, var(--sky-bottom) 100%);
-  }
-  #fx, #scene{ position:fixed; inset:0; width:100%; height:100%; display:block; }
-  #fx{ z-index:0; pointer-events:none; }
+  .sky{ position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0; }
+  /* one layer per colour theme; a firework crossfades to the next one */
+  .sky i{ position:absolute; inset:0; opacity:0; transition:opacity 1.6s ease; }
+  .sky i.on{ opacity:1; }
+  .sky i:nth-child(1){ background:radial-gradient(90% 60% at 55% 42%, rgba(229,26,77,.42) 0%, rgba(229,26,77,0) 70%), radial-gradient(140% 100% at 50% 40%, #5e0a2f 0%, #2e0519 50%, #12020a 100%); }
+  .sky i:nth-child(2){ background:radial-gradient(90% 60% at 55% 42%, rgba(255,140,30,.38) 0%, rgba(255,140,30,0) 70%), radial-gradient(140% 100% at 50% 40%, #6e3402 0%, #311506 50%, #130703 100%); }
+  .sky i:nth-child(3){ background:radial-gradient(90% 60% at 55% 42%, rgba(20,190,190,.34) 0%, rgba(20,190,190,0) 70%), radial-gradient(140% 100% at 50% 40%, #074559 0%, #062231 50%, #020b12 100%); }
+  .sky i:nth-child(4){ background:radial-gradient(90% 60% at 55% 42%, rgba(215,50,215,.36) 0%, rgba(215,50,215,0) 70%), radial-gradient(140% 100% at 50% 40%, #5c0d6e 0%, #2b0637 50%, #0f0216 100%); }
+  #trail, #fx, #scene{ position:fixed; inset:0; width:100%; height:100%; display:block; }
+  #trail, #fx{ z-index:0; pointer-events:none; }
   #scene{ z-index:1; touch-action:none; cursor:grab; opacity:0; transition:opacity 1.6s ease .1s; }
   #scene.ready{ opacity:1; }
   #scene.dragging{ cursor:grabbing; }
@@ -85,10 +83,10 @@
   header .brand{ display:block; height:30px; width:auto; margin:0 auto 22px; }
   h1{
     margin:0;
-    font-family:"Allura", "Snell Roundhand", "Apple Chancery", cursive;
-    font-weight:400; font-size:clamp(40px, 11vw, 58px); line-height:.95; letter-spacing:.005em;
+    font-family:"Fraunces", Georgia, "Times New Roman", serif; font-style:italic;
+    font-weight:500; font-size:clamp(34px, 9.4vw, 46px); line-height:1.04; letter-spacing:-.022em;
     text-wrap:balance;
-    text-shadow:0 2px 28px rgba(150,80,255,.5);
+    text-shadow:0 2px 26px var(--h1-glow), 0 1px 3px rgba(0,0,0,.45); transition:text-shadow 1.6s ease;
   }
   header p{ margin:8px 0 0; color:var(--ink-soft); font-size:15px; letter-spacing:.01em; }
   footer{ display:flex; flex-direction:column; align-items:center; gap:12px; }
@@ -105,7 +103,7 @@
     header .brand{ height:clamp(30px, 2.5vw, 40px); margin:0 0 clamp(12px, 2.6vh, 26px); }
     footer{ align-items:flex-start; }
     #hint{ text-align:left; }
-    h1{ font-size:min(clamp(60px, 6.2vw, 108px), 15vh); max-width:12ch; line-height:.92; }
+    h1{ font-size:min(clamp(50px, 5vw, 84px), 12.5vh); max-width:11ch; line-height:1.02; }
     header p{ font-size:clamp(15px, 1.25vw, 19px); margin-top:clamp(10px, 2vh, 18px); }
     #hint{ font-size:clamp(14px, 1.05vw, 16px); }
   }
@@ -146,7 +144,7 @@
       0 5px 14px var(--halo);
   }
   #toggle[aria-pressed="true"]{
-    --face-top:#f6efff; --face-bot:#cdb2ff; --lip:#6f45c8; --ink-btn:#250a5e; --halo:rgba(170,120,255,.4);
+    --face-top:#fff1ec; --face-bot:#ffb3c4; --lip:#b3123f; --ink-btn:#4a0418; --halo:rgba(255,90,130,.4);
   }
   #toggle .flame{ width:18px; height:18px; flex:none; }
   #toggle .flame path{ transition:fill .3s; }
@@ -181,9 +179,10 @@
 </style>
 </head>
 <body>
-<div class="sky" aria-hidden="true"></div>
+<div class="sky" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i></div>
+<canvas id="trail" aria-hidden="true"></canvas>
 <canvas id="fx" aria-hidden="true"></canvas>
-<canvas id="scene" aria-label="A paper lantern with the Pocket FM logo. Tap it to light it, drag to spin it, tap anywhere else for fireworks."></canvas>
+<canvas id="scene" aria-label="A paper lantern with the Pocket FM logo. Tap it to light it, drag to spin it, tap anywhere else for fireworks that change the colour of the sky."></canvas>
 <button id="sound" class="pill" type="button" aria-pressed="true" aria-label="Sound">
   <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18 6.5a7.6 7.6 0 0 1 0 11"/></svg>
   <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
@@ -221,12 +220,19 @@
   const soundBtn = document.getElementById('sound');
   const fx = document.getElementById('fx');
   const fctx = fx.getContext('2d');
+  // fireworks draw their streaks here; the canvas fades a little each frame, which leaves long trails
+  const trail = document.getElementById('trail');
+  const tctx = trail.getContext('2d');
   let FW = 1, FH = 1;
   function sizeFx(){
     const d = Math.min(window.devicePixelRatio || 1, 2);
     FW = window.innerWidth; FH = window.innerHeight;
     fx.width = Math.round(FW * d); fx.height = Math.round(FH * d);
     fctx.setTransform(d, 0, 0, d, 0, 0);
+    const td = Math.min(d, 1.5);
+    trail.width = Math.round(FW * td); trail.height = Math.round(FH * td);
+    tctx.setTransform(td, 0, 0, td, 0, 0);
+    tctx.lineCap = 'round';
   }
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
@@ -266,7 +272,7 @@
     const w = window.innerWidth, h = window.innerHeight;
     // pin both canvases to the visible viewport so tap maths matches what is drawn,
     // even while a mobile browser's toolbar slides in and out
-    canvas.style.height = fx.style.height = h + 'px';
+    canvas.style.height = fx.style.height = trail.style.height = h + 'px';
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     // fit the lantern into its free region (below the copy on phones, right of it on wide screens)
@@ -357,13 +363,13 @@
   const LOGO_DX = 6, LOGO_DY = -8;
   function panelDraw(glow){
     return (ctx) => {
-      if (glow){ ctx.fillStyle = '#2e0f7c'; }
-      else { const g = ctx.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, '#a565ff'); g.addColorStop(1, '#6b25e8'); ctx.fillStyle = g; }
+      if (glow){ ctx.fillStyle = '#6a0a2a'; }
+      else { const g = ctx.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, '#f8386a'); g.addColorStop(1, '#c20d3e'); ctx.fillStyle = g; }
       ctx.fillRect(0, 0, 512, 512);
       // soft light pooling behind the logo
       const rg = ctx.createRadialGradient(256, 256, 0, 256, 256, 230);
-      rg.addColorStop(0, glow ? 'rgba(165,110,255,1)' : 'rgba(180,130,255,.55)');
-      rg.addColorStop(1, glow ? 'rgba(46,15,124,0)' : 'rgba(180,130,255,0)');
+      rg.addColorStop(0, glow ? 'rgba(255,120,120,1)' : 'rgba(255,150,150,.5)');
+      rg.addColorStop(1, glow ? 'rgba(106,10,42,0)' : 'rgba(255,150,150,0)');
       ctx.fillStyle = rg; diamondPath(ctx, 256, 256, 236); ctx.fill();
       diamondPath(ctx, 256, 256, 244); ctx.strokeStyle = glow ? '#8a5a1c' : '#ffd27a'; ctx.lineWidth = 6; ctx.stroke();
       ctx.fillStyle = glow ? '#7a4f18' : '#ffd27a';
@@ -372,7 +378,7 @@
       ctx.translate(256, 256); ctx.scale(1 / FACE_ASPECT, 1);
       if (glow){
         ctx.save(); ctx.globalAlpha = .28; ctx.filter = 'blur(22px)';
-        drawLogo(ctx, LOGO_DX, LOGO_DY, 196, '#e2d0ff');
+        drawLogo(ctx, LOGO_DX, LOGO_DY, 196, '#ffd9c8');
         ctx.restore();
       }
       drawLogo(ctx, LOGO_DX, LOGO_DY, 180, '#ffffff');
@@ -382,12 +388,12 @@
   const diamondMap = tex(512, 512, panelDraw(false));
   const diamondGlow = tex(512, 512, panelDraw(true));
 
-  // Triangles between panels: deep purple paper (darker than the logo panels, so the diamonds stand out)
+  // Triangles between panels: deep wine paper (darker than the logo panels, so the diamonds stand out)
   // with nested gold chevrons and a zigzag edge.
   function triDraw(glow){
     return (ctx) => {
-      if (glow){ ctx.fillStyle = '#1c0650'; }
-      else { const g = ctx.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, '#5a1ec8'); g.addColorStop(1, '#3a0d96'); ctx.fillStyle = g; }
+      if (glow){ ctx.fillStyle = '#3a0516'; }
+      else { const g = ctx.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, '#8e0c34'); g.addColorStop(1, '#5a0722'); ctx.fillStyle = g; }
       ctx.fillRect(0, 0, 256, 256);
       ctx.strokeStyle = glow ? '#6e4614' : 'rgba(255,210,122,.85)'; ctx.lineWidth = 4; ctx.lineJoin = 'round';
       for (let i = 0; i < 3; i++){
@@ -404,8 +410,8 @@
   // Bands: gold zigzag edges and a row of four-point sparkles that glow warm when lit.
   function bandDraw(glow){
     return (ctx, w, h) => {
-      if (glow){ ctx.fillStyle = '#2e0f7c'; }
-      else { const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#9450ff'); g.addColorStop(1, '#6b25e8'); ctx.fillStyle = g; }
+      if (glow){ ctx.fillStyle = '#6a0a2a'; }
+      else { const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#e51a4d'); g.addColorStop(1, '#b30e3a'); ctx.fillStyle = g; }
       ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = glow ? '#6e4614' : '#ffd27a';
       zigzag(ctx, w, 0, 1, 14, 24);
@@ -433,7 +439,7 @@
     });
   }
   const sparkTex = radialTex([[0, 'rgba(255,255,255,1)'], [.25, 'rgba(255,255,255,.85)'], [.6, 'rgba(255,255,255,.15)'], [1, 'rgba(255,255,255,0)']]);
-  const haloTex = radialTex([[0, 'rgba(222,190,255,1)'], [.3, 'rgba(150,70,255,.45)'], [.65, 'rgba(110,20,240,.12)'], [1, 'rgba(90,0,220,0)']]);
+  const haloTex = radialTex([[0, 'rgba(255,210,200,1)'], [.3, 'rgba(255,70,110,.45)'], [.65, 'rgba(229,26,77,.12)'], [1, 'rgba(200,0,60,0)']]);
 
   // ---------- Lantern geometry ----------
   function P(r, deg, y){ const a = deg * Math.PI / 180; return [r * Math.sin(a), y, r * Math.cos(a)]; }
@@ -469,9 +475,9 @@
   const matDiamond = paper(diamondMap, diamondGlow);
   const matTri = paper(triMap, triGlow);
   const matBand = paper(bandMap, bandGlow);
-  const matCap = new THREE.MeshStandardMaterial({ color:0x2c0a6e, roughness:.8, side:THREE.DoubleSide });
+  const matCap = new THREE.MeshStandardMaterial({ color:0x4a0a20, roughness:.8, side:THREE.DoubleSide });
   const matGold = new THREE.MeshStandardMaterial({ color:0xd9a441, metalness:.55, roughness:.35, emissive:0xffb84a, emissiveIntensity:0 });
-  const matBottom = new THREE.MeshStandardMaterial({ color:0x4a1aa0, emissive:0xe6c6ff, emissiveIntensity:0, roughness:.8, side:THREE.DoubleSide });
+  const matBottom = new THREE.MeshStandardMaterial({ color:0x7a1030, emissive:0xffd0c8, emissiveIntensity:0, roughness:.8, side:THREE.DoubleSide });
 
   const pivot = new THREE.Group();
   pivot.position.y = ANCHOR_Y;
@@ -498,32 +504,32 @@
   const sPts = [], sCol = [];
   for (let k = 0; k < N; k++){
     sPts.push(...P(R * .96, k * STEP, H + BH), 0, HOOK_Y, 0);
-    sCol.push(.42, .34, .62, .3, .25, .45);
+    sCol.push(.62, .42, .4, .45, .3, .28);
   }
   // one cord up from where the strings meet, fading into the sky
   sPts.push(0, HOOK_Y, 0, 0, ANCHOR_Y, 0);
-  sCol.push(.3, .25, .45, 0, 0, 0);
+  sCol.push(.45, .3, .28, 0, 0, 0);
   const sGeo = new THREE.BufferGeometry();
   sGeo.setAttribute('position', new THREE.Float32BufferAttribute(sPts, 3));
   sGeo.setAttribute('color', new THREE.Float32BufferAttribute(sCol, 3));
   const stringMat = new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
   lantern.add(new THREE.LineSegments(sGeo, stringMat));
 
-  const innerLight = new THREE.PointLight(0xc48cff, 0, 7, 2);
+  const innerLight = new THREE.PointLight(0xff8ca8, 0, 7, 2);
   innerLight.position.set(0, -H - BH - .35, 0);
   lantern.add(innerLight);
 
   // Scene light starts very low so the unlit lantern sits dark in the night;
   // it rises with the lantern's own light (see the loop).
-  const hemi = new THREE.HemisphereLight(0x6a5ac8, 0x120830, .05);
+  const hemi = new THREE.HemisphereLight(0xd8788c, 0x300812, .05);
   scene.add(hemi);
-  const moon = new THREE.DirectionalLight(0xa9b6ff, .05);
+  const moon = new THREE.DirectionalLight(0xffc8c0, .05);
   moon.position.set(-4, 5, 6);
   scene.add(moon);
 
   // ---------- Tassels ----------
   const SEG = 10, PER_EDGE = 12;
-  const palette = ['#8a45ff', '#6c22e6', '#a877ff', '#5a16cc', '#d659c4', '#ffc56b', '#9b5cff', '#7a33f0', '#8a45ff'];
+  const palette = ['#e51a4d', '#c20d3e', '#ff5c80', '#8e0c34', '#ff8a3c', '#ffc56b', '#f8386a', '#ffd27a', '#e51a4d'];
   const strips = [];
   const yb = -H - BH + .02;
   for (let e = 0; e < N; e++){
@@ -567,7 +573,7 @@
   tasselGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3));
   tasselGeo.setAttribute('color', new THREE.BufferAttribute(tCol, 3));
   tasselGeo.setIndex(tIdx);
-  const matTassel = new THREE.MeshStandardMaterial({ vertexColors:true, side:THREE.DoubleSide, roughness:.6, emissive:0x2a0c66, emissiveIntensity:0 });
+  const matTassel = new THREE.MeshStandardMaterial({ vertexColors:true, side:THREE.DoubleSide, roughness:.6, emissive:0x661026, emissiveIntensity:0 });
   const tassels = new THREE.Mesh(tasselGeo, matTassel);
   lantern.add(tassels);
   // small gold beads on the end of every other tassel
@@ -643,8 +649,8 @@
     // ---- background music (ElevenLabs): decoded and looped inside Web Audio, because an <audio>
     // loop leaves an audible gap. music.m4a is padded either side of the loop so any encoder
     // delay stays harmless. It goes through the master volume, so mute applies to it too. ----
-    const MUSIC_LOOP = [0.250000, 64.440000]; // seconds
-    const MUSIC_LEVEL = [.5, .66]; // unlit, lit: kept under the fireworks
+    const MUSIC_LOOP = [0.250000, 53.590000]; // seconds
+    const MUSIC_LEVEL = [0.367, 0.482]; // unlit, lit: kept under the fireworks
     let music = null, mood = 0;
     function startMusic(){
       if (!ac || music) return;
@@ -669,10 +675,11 @@
       setMood(lit){ mood = lit ? 1 : 0; if (music) music.g.gain.setTargetAtTime(MUSIC_LEVEL[mood], ac.currentTime, .8); },
       get muted(){ return muted; },
       setMuted(m){ muted = m; if (master) master.gain.setTargetAtTime(m ? 0 : .8, ac.currentTime, .05); },
-      whoosh(x, dur){
+      whoosh(x, dur, vol){
+        vol = vol === undefined ? 1 : vol;
         if (!ac || muted) return;
         const t = ac.currentTime, o = out(x);
-        if (playSample('rocket', o, .35, t)) return;
+        if (playSample('rocket', o, .35 * vol, t) || vol < 1) return;
         const n = noiseSrc(1), f = ac.createBiquadFilter(), g = ac.createGain();
         f.type = 'bandpass'; f.Q.value = 3;
         f.frequency.setValueAtTime(600, t); f.frequency.exponentialRampToValueAtTime(3600, t + dur);
@@ -682,13 +689,15 @@
         n.connect(f); f.connect(g); g.connect(o);
         n.start(t); n.stop(t + dur + .1);
       },
-      boom(x, big, crackTimes){
+      boom(x, big, crackTimes, vol, delay){
         if (!ac || muted) return;
-        const t = ac.currentTime, o = out(x);
-        if (playSample('burst', o, big ? .95 : .75, t, .9 + Math.random() * .2)){
-          playSample('crackle', o, .3, t + .22, .9 + Math.random() * .25);
+        vol = vol === undefined ? 1 : vol;
+        const t = ac.currentTime + (delay || 0), o = out(x);
+        if (playSample('burst', o, (big ? .95 : .75) * vol, t, .9 + Math.random() * .2)){
+          playSample('crackle', o, .3 * vol, t + .22, .9 + Math.random() * .25);
           return;
         }
+        if (vol < 1) return;
         // low thump
         const osc = ac.createOscillator(), og = ac.createGain();
         osc.type = 'sine';
@@ -771,7 +780,7 @@
     const p = type === 'ring'
       ? [[0, 75], [95, 34], [160, 22], [220, 14]]
       : [[0, 60], [85, 30], [150, 20], [210, 12]];
-    if (type === 'double') p.push([290, 45], [360, 18], [410, 10]); // the inner ring goes off a beat later
+    if (type === 'crossette') p.push([290, 45], [360, 18], [410, 10]); // the shells split a beat later
     cracks.forEach((c, i) => p.push([c * 1000, (i % 3 === 0 ? 16 : 9) + Math.random() * 6]));
     return p;
   }
@@ -779,9 +788,9 @@
   function rocketPulses(lifeMs){
     return [[0, 14], [lifeMs * .38, 6], [lifeMs * .6, 7], [lifeMs * .76, 8], [lifeMs * .88, 10]];
   }
-  function pickBurst(){
-    const roll = Math.random();
-    return { type: roll < .22 ? 'ring' : roll < .5 ? 'double' : 'peony', cracks: makeCracks() };
+  const BURST_TYPES = ['chrysanthemum', 'chrysanthemum', 'peony', 'willow', 'willow', 'palm', 'ring', 'crossette', 'glitter'];
+  function pickBurst(force){
+    return { type:force || BURST_TYPES[(Math.random() * BURST_TYPES.length) | 0], cracks:makeCracks() };
   }
 
   // ---------- Lantern position on screen ----------
@@ -796,6 +805,38 @@
     gB.set(0, -H - BH - .9, 0).applyMatrix4(lantern.matrixWorld).project(camera);
     LS.bx = (gB.x + 1) / 2 * FW; LS.by = (1 - gB.y) / 2 * FH;
   }
+
+  // ---------- Colour themes: every user firework moves the whole scene to the next one ----------
+  const THEMES = [
+    { name:'sindoor',  glow:[229, 26, 77],  soft:[255, 150, 170], shells:['255,70,110', '255,212,130', '255,245,235'] },
+    { name:'marigold', glow:[255, 140, 30], soft:[255, 205, 120], shells:['255,170,50', '255,232,165', '255,95,60'] },
+    { name:'peacock',  glow:[20, 190, 190], soft:[130, 240, 225], shells:['45,228,212', '125,175,255', '255,222,135'] },
+    { name:'rani',     glow:[215, 50, 215], soft:[250, 150, 240], shells:['242,85,232', '175,115,255', '255,205,232'] }
+  ];
+  const skyLayers = document.querySelectorAll('.sky i');
+  let theme = 0, lastThemeAt = -9;
+  const tone = { glow:THEMES[0].glow.slice(), soft:THEMES[0].soft.slice() };
+  const rgb = (c) => (c[0] | 0) + ',' + (c[1] | 0) + ',' + (c[2] | 0);
+  function setTheme(i){
+    if (i === theme) return;
+    skyLayers[theme].classList.remove('on');
+    skyLayers[i].classList.add('on');
+    theme = i; lastThemeAt = time;
+    document.documentElement.dataset.mood = THEMES[i].name;
+  }
+  function easeTheme(dt){
+    const k = 1 - Math.exp(-2.4 * dt), t = THEMES[theme];
+    for (let i = 0; i < 3; i++){
+      tone.glow[i] += (t.glow[i] - tone.glow[i]) * k;
+      tone.soft[i] += (t.soft[i] - tone.soft[i]) * k;
+    }
+    innerLight.color.setRGB(tone.soft[0] / 255, tone.soft[1] / 255, tone.soft[2] / 255);
+    // the paper picks up a little of the theme's light; 1 - .32 keeps it recognisably red and gold
+    const e = (c) => (1 - .32) + .32 * c / 255;
+    tint.setRGB(e(tone.soft[0]), e(tone.soft[1]), e(tone.soft[2]));
+    matDiamond.emissive.copy(tint); matTri.emissive.copy(tint); matBand.emissive.copy(tint);
+  }
+  const tint = new THREE.Color(1, 1, 1);
 
   // ---------- Sky: twinkling stars, sparkles, the odd shooting star ----------
   const STARS = [];
@@ -813,7 +854,7 @@
     for (const s of STARS){
       const tw = reduce ? 1 : .55 + .45 * Math.sin(t * s.sp + s.ph);
       fctx.globalAlpha = s.a * tw;
-      fctx.fillStyle = s.warm ? '#ffe2b0' : '#efe6ff';
+      fctx.fillStyle = s.warm ? '#ffe2b0' : '#fff0ea';
       fctx.beginPath(); fctx.arc(s.x * FW, s.y * FH, s.r, 0, Math.PI * 2); fctx.fill();
     }
     for (const g of GLINTS){
@@ -821,7 +862,7 @@
       const k = v * v * v;
       if (k < .02) continue;
       const x = g.x * FW, y = g.y * FH, r = g.r * (.6 + .4 * k);
-      glow(x, y, r * 4, '220,200,255', .25 * k);
+      glow(x, y, r * 4, '255,215,200', .25 * k);
       fctx.globalAlpha = .9 * k; fctx.fillStyle = '#ffffff';
       fctx.save(); fctx.translate(x, y); star(r); fctx.fill(); fctx.restore();
     }
@@ -840,7 +881,7 @@
         const tx = hx - sh.vx * .12, ty = hy - sh.vy * .12;
         const gr = fctx.createLinearGradient(hx, hy, tx, ty);
         const a = Math.sin(Math.min(1, k) * Math.PI);
-        gr.addColorStop(0, 'rgba(255,255,255,' + (.9 * a) + ')'); gr.addColorStop(1, 'rgba(200,170,255,0)');
+        gr.addColorStop(0, 'rgba(255,255,255,' + (.9 * a) + ')'); gr.addColorStop(1, 'rgba(255,190,170,0)');
         fctx.globalAlpha = 1; fctx.strokeStyle = gr; fctx.lineWidth = 1.6; fctx.lineCap = 'round';
         fctx.beginPath(); fctx.moveTo(hx, hy); fctx.lineTo(tx, ty); fctx.stroke();
         if (k >= 1) shooting = null;
@@ -850,7 +891,7 @@
     fctx.globalCompositeOperation = 'source-over';
   }
 
-  // ---------- Diamond ripples when the lantern lights up ----------
+  // ---------- Light rings when the lantern lights up ----------
   const ripples = [];
   function rippleOut(){
     const n = reduce ? 1 : 3;
@@ -869,15 +910,10 @@
       const e = 1 - Math.pow(1 - k, 2.4);
       const r = LS.ppu * 1.4 + (maxR - LS.ppu * 1.4) * e;
       const a = Math.pow(1 - k, 1.6);
-      fctx.save();
-      fctx.translate(LS.x, LS.y);
-      fctx.scale(1, 1.22);
-      diamond(r, r, r);
-      fctx.globalAlpha = a * .08; fctx.fillStyle = '#b48cff'; fctx.fill();
-      fctx.globalAlpha = a * .55; fctx.strokeStyle = '#d9c4ff'; fctx.lineWidth = 2.2 * (1 - k) + .6; fctx.stroke();
-      diamond(r * .94, r * .94, r * .94);
+      fctx.beginPath(); fctx.arc(LS.x, LS.y, r, 0, Math.PI * 2);
+      fctx.globalAlpha = a * .5; fctx.strokeStyle = 'rgb(' + rgb(tone.soft) + ')'; fctx.lineWidth = 2.2 * (1 - k) + .6; fctx.stroke();
+      fctx.beginPath(); fctx.arc(LS.x, LS.y, r * .94, 0, Math.PI * 2);
       fctx.globalAlpha = a * .22; fctx.strokeStyle = '#ffd27a'; fctx.lineWidth = 1; fctx.stroke();
-      fctx.restore();
     }
     fctx.globalAlpha = 1;
     fctx.globalCompositeOperation = 'source-over';
@@ -921,75 +957,194 @@
   function drawGlow(){
     if (glowAmt <= .003) return;
     fctx.globalCompositeOperation = 'lighter';
-    glow(LS.x, LS.y, LS.ppu * 7.5, '125,60,255', .34 * glowAmt);
-    glow(LS.x, LS.y, LS.ppu * 3.4, '195,150,255', .6 * glowAmt);
-    glow(LS.bx, LS.by, LS.ppu * 2.6, '255,150,220', .16 * glowAmt);
+    glow(LS.x, LS.y, LS.ppu * 7.5, rgb(tone.glow), .34 * glowAmt);
+    glow(LS.x, LS.y, LS.ppu * 3.4, rgb(tone.soft), .55 * glowAmt);
+    glow(LS.bx, LS.by, LS.ppu * 2.6, '255,190,120', .16 * glowAmt);
     fctx.globalCompositeOperation = 'source-over';
   }
 
-  // ---------- Fireworks: crisp diamond shapes ----------
-  const SCHEMES = [
-    ['#ffffff', '#d9c2ff'], ['#ffd27a', '#ffffff'], ['#ff8fc9', '#ffe0f0'],
-    ['#b98cff', '#ffffff'], ['#ffd27a', '#ff8fc9'], ['#cdb4ff', '#ffd27a']
-  ];
+  // ---------- Fireworks ----------
+  // Every shell has a depth: 1 is close, lower is further away, so smaller, dimmer and quieter.
   const rockets = [], parts = [], flashes = [];
+  const MAX_PARTS = (Math.min(screen.width, screen.height) < 700) ? 800 : 1500;
   function unit(){ return Math.max(.7, Math.min(1.35, Math.min(FW, FH) / 720)); }
-  function launchAt(x, y, user){
+
+  // soft round dot per colour, drawn once and reused for every particle head
+  const dots = {};
+  function dot(col){
+    if (dots[col]) return dots[col];
+    const c = document.createElement('canvas'); c.width = c.height = 32;
+    const x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.18, 'rgba(' + col + ',1)');
+    g.addColorStop(.45, 'rgba(' + col + ',.35)'); g.addColorStop(1, 'rgba(' + col + ',0)');
+    x.fillStyle = g; x.fillRect(0, 0, 32, 32);
+    return dots[col] = c;
+  }
+
+  function launchAt(x, y, user, opts){
+    opts = opts || {};
+    const depth = opts.depth || 1, vol = opts.vol === undefined ? 1 : opts.vol;
     y = Math.min(y, FH * .82);
     const sx = x + (Math.random() - .5) * 70;
-    const life = .6 + Math.random() * .2;
-    const burst = pickBurst();
-    rockets.push({ sx, sy:FH + 16, x:sx, y:FH + 16, tx:x, ty:y, age:0, life, trail:[], user:!!user, burst });
-    sfx.whoosh(x, life);
+    const life = (.6 + Math.random() * .2) * (.85 + depth * .15);
+    const burst = pickBurst(opts.force);
+    // a shell the user set off moves the sky on when it bursts (-1 = whatever comes next by then)
+    burst.theme = opts.theme === undefined ? (user ? -1 : theme) : opts.theme;
+    rockets.push({ sx, sy:FH + 16, x:sx, y:FH + 16, px:sx, py:FH + 16, tx:x, ty:y, age:0, life, user:!!user, burst, depth, vol });
+    sfx.whoosh(x, life, vol);
     // the whole feel (climb, crack, rumble, crackle) is scheduled now, while we still hold the user's tap
     if (user){
       const L = life * 1000;
       haptics.play(rocketPulses(L).concat(burstPulses(burst.type, burst.cracks).map(([t, d]) => [t + L, d])));
     }
   }
-  function burstAt(x, y, user, burst){
-    burst = burst || pickBurst();
-    const u = unit();
-    const [c1, c2] = SCHEMES[(Math.random() * SCHEMES.length) | 0];
-    const type = burst.type;
-    const n = reduce ? 22 : type === 'ring' ? 36 : 44;
-    const speed = (210 + Math.random() * 70) * u;
-    for (let i = 0; i < n; i++){
-      const a = (i / n) * Math.PI * 2 + (Math.random() - .5) * (type === 'ring' ? .02 : .2);
-      const sp = speed * (type === 'ring' ? 1 : .75 + Math.random() * .35);
-      parts.push({ x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, size:(6.5 + Math.random() * 3) * u,
-        col:i % 4 === 0 ? c2 : c1, age:0, life:1.5 + Math.random() * .5, kind:'diamond', tw:Math.random() < .3, ph:Math.random() * 6 });
+
+  function spawn(x, y, vx, vy, o){
+    if (parts.length >= MAX_PARTS) return;
+    parts.push({ x, y, px:x, py:y, vx, vy, age:0, life:o.life, col:o.col, w:o.w, drag:o.drag, grav:o.grav,
+      twinkle:o.twinkle || 0, ph:Math.random() * 6.3, sparks:o.sparks || 0, split:o.split || 0, dim:o.dim });
+  }
+  // a random direction on a sphere, flattened to the screen, so shells look round rather than like discs
+  function sphere(){
+    const z = Math.random() * 2 - 1, a = Math.random() * 6.283, r = Math.sqrt(1 - z * z);
+    return [r * Math.cos(a), r * Math.sin(a)];
+  }
+  // The Pocket FM bubble as points: a circle with the tail at bottom left.
+  function bubblePoints(n){
+    const pts = [], tailStart = 2.2, tailEnd = 2.95; // the gap in the circle, in radians from +x, clockwise on screen
+    for (let i = 0; i < n * .82; i++){
+      const a = tailEnd + (i / (n * .82)) * (6.283 - (tailEnd - tailStart));
+      pts.push([Math.cos(a), Math.sin(a)]);
     }
-    if (type === 'double'){
-      const m = reduce ? 10 : 20;
-      for (let i = 0; i < m; i++){
-        const a = (i / m) * Math.PI * 2 + Math.PI / m;
-        const sp = speed * .48;
-        parts.push({ x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, size:7 * u, col:c2, age:0, life:1.3,
-          kind:'star', rot:Math.random() * 6, vr:(Math.random() - .5) * 6, tw:false, ph:0 });
+    const A = [Math.cos(tailStart), Math.sin(tailStart)], B = [Math.cos(tailEnd), Math.sin(tailEnd)], T = [-1, 1.32];
+    const m = Math.floor(n * .09);
+    for (let i = 0; i < m; i++){
+      const t = i / m;
+      pts.push([A[0] + (T[0] - A[0]) * t, A[1] + (T[1] - A[1]) * t], [T[0] + (B[0] - T[0]) * t, T[1] + (B[1] - T[1]) * t]);
+    }
+    return pts;
+  }
+
+  function burstAt(x, y, r){
+    const burst = r.burst, type = burst.type, depth = r.depth, u = unit() * depth;
+    const dim = .55 + depth * .45;
+    const ti = burst.theme < 0 ? (theme + 1) % THEMES.length : burst.theme;
+    if (ti !== theme && (r.user || time - lastThemeAt > 1.4)) setTheme(ti);
+    const sh = THEMES[ti].shells;
+    const c1 = sh[(Math.random() * sh.length) | 0], c2 = sh[(Math.random() * sh.length) | 0];
+    const q = reduce ? .4 : 1;
+    const base = { drag:1.7, grav:95 * u, w:1.7 * depth + .5, dim };
+    const speed = (250 + Math.random() * 80) * u;
+    let big = true;
+    if (type === 'chrysanthemum'){
+      const n = 120 * q;
+      for (let i = 0; i < n; i++){
+        const [a, b] = sphere(), s = speed * (.86 + Math.random() * .22);
+        spawn(x, y, a * s, b * s, { ...base, life:1.7 + Math.random() * .6, col:i % 5 ? c1 : c2, twinkle:Math.random() < .3 ? 1 : 0 });
       }
+      const m = 34 * q; // a tight bright heart in a second colour
+      for (let i = 0; i < m; i++){
+        const [a, b] = sphere(), s = speed * .42;
+        spawn(x, y, a * s, b * s, { ...base, life:1.2 + Math.random() * .4, col:c2 });
+      }
+    } else if (type === 'peony'){
+      big = false;
+      const n = 90 * q;
+      for (let i = 0; i < n; i++){
+        const [a, b] = sphere(), s = speed * .8 * (.8 + Math.random() * .3);
+        spawn(x, y, a * s, b * s, { ...base, drag:2.4, life:1.1 + Math.random() * .5, col:i % 2 ? c1 : c2 });
+      }
+    } else if (type === 'willow'){
+      const n = 80 * q;
+      for (let i = 0; i < n; i++){
+        const [a, b] = sphere(), s = speed * .72 * (.8 + Math.random() * .35);
+        spawn(x, y, a * s, b * s, { ...base, drag:1.5, grav:58 * u, life:3 + Math.random() * .9, col:'255,205,120', sparks:.7, w:1.3 * depth + .4 });
+      }
+    } else if (type === 'palm'){
+      const arms = 11;
+      for (let k = 0; k < arms; k++){
+        const a = (k / arms) * 6.283 + Math.random() * .2;
+        for (let j = 0; j < 7 * q; j++){
+          const s = speed * (.55 + j * .09);
+          spawn(x, y, Math.cos(a) * s, Math.sin(a) * s - 22 * u, { ...base, drag:1.45, grav:118 * u, life:2.1 + Math.random() * .4, col:j % 3 ? c1 : '255,225,170', w:2.1 * depth + .5 });
+        }
+      }
+    } else if (type === 'ring'){
+      // a circle seen at an angle, with a smaller one crossing it
+      const tilt = Math.random() * 3.14, sq = .35 + Math.random() * .5, n = 64 * q;
+      [[1, c1, 0], [.56, c2, 1.57]].forEach(([sc, col, off]) => {
+        for (let i = 0; i < n * sc; i++){
+          const a = (i / (n * sc)) * 6.283, ex = Math.cos(a) * speed * sc, ey = Math.sin(a) * speed * sc * sq;
+          const t = tilt + off;
+          spawn(x, y, ex * Math.cos(t) - ey * Math.sin(t), ex * Math.sin(t) + ey * Math.cos(t), { ...base, life:1.6 + Math.random() * .25, col });
+        }
+      });
+    } else if (type === 'crossette'){
+      const n = 26 * q;
+      for (let i = 0; i < n; i++){
+        const a = (i / n) * 6.283 + Math.random() * .1, s = speed * .9;
+        spawn(x, y, Math.cos(a) * s, Math.sin(a) * s, { ...base, life:.95, col:c1, split:1, w:2 * depth + .5 });
+      }
+    } else if (type === 'glitter'){
+      const n = 150 * q;
+      for (let i = 0; i < n; i++){
+        const [a, b] = sphere(), s = speed * Math.sqrt(Math.random()) * .95;
+        spawn(x, y, a * s, b * s, { ...base, drag:2.3, grav:48 * u, life:1.8 + Math.random() * 1.4, col:Math.random() < .7 ? '255,240,215' : c1, twinkle:1, w:.8 });
+      }
+    } else if (type === 'bubble'){
+      const pts = bubblePoints(reduce ? 60 : 150), s = speed * 1.02;
+      pts.forEach((p, i) => {
+        spawn(x, y, p[0] * s, p[1] * s, { ...base, drag:2.1, grav:26 * u, life:2.1 + Math.random() * .3, col:'255,245,235', w:2.1 * depth + .4 });
+      });
     }
-    const g = reduce ? 6 : 16;
-    for (let i = 0; i < g; i++){
-      const a = Math.random() * Math.PI * 2, sp = speed * (.2 + Math.random() * .6);
-      parts.push({ x, y, vx:Math.cos(a) * sp, vy:Math.sin(a) * sp, size:(3 + Math.random() * 2.5) * u, col:'#ffffff', age:0,
-        life:1.2 + Math.random() * .9, kind:'star', rot:0, vr:(Math.random() - .5) * 4, tw:true, ph:Math.random() * 6 });
+    flashes.push({ x, y, age:0, life:.5, r:speed * .9, col:c1, sky:depth });
+    sfx.boom(x, big, burst.cracks, r.vol, (1 - depth) * .5);
+  }
+
+  // one shell somewhere in the sky behind everything else
+  function backgroundShell(opts){
+    const wide = wideMQ.matches;
+    const depth = .5 + Math.random() * .5;
+    const x = FW * (wide ? (Math.random() < .25 ? .06 + Math.random() * .3 : .36 + Math.random() * .6) : .08 + Math.random() * .84);
+    const y = FH * (wide ? .08 + Math.random() * .42 : .14 + Math.random() * .42);
+    launchAt(x, y, false, { depth, vol:.2 + depth * .32, ...opts });
+  }
+  // once the lantern is lit the sky keeps going by itself: single shells, quick salvos, and a finale now and then
+  let nextShell = 1.4, sinceFinale = 0, sinceTheme = 0;
+  function runShow(dt){
+    if (reduce || state.litTarget < .5) return;
+    sinceFinale += dt; sinceTheme += dt; nextShell -= dt;
+    if (nextShell > 0) return;
+    if (parts.length > MAX_PARTS * .8){ nextShell = .4; return; }
+    // the sky turns over on its own too, so it keeps moving even if nobody taps
+    const shift = sinceTheme > 9;
+    if (shift) sinceTheme = 0;
+    const nextTheme = shift ? (theme + 1) % THEMES.length : undefined;
+    if (sinceFinale > 26){
+      sinceFinale = 0;
+      for (let i = 0; i < 7; i++) setTimeout(() => { if (state.litTarget > .5) backgroundShell(); }, i * 170);
+      setTimeout(() => { if (state.litTarget > .5) launchNear(1, false, 'bubble', { theme:(theme + 1) % THEMES.length }); }, 1500);
+      nextShell = 4.2;
+    } else if (Math.random() < .22){
+      for (let i = 0; i < 3; i++) setTimeout(() => { if (state.litTarget > .5) backgroundShell(); }, i * 230);
+      nextShell = 2.1 + Math.random();
+    } else {
+      backgroundShell({ theme:nextTheme });
+      nextShell = .85 + Math.random() * 1.3;
     }
-    flashes.push({ x, y, age:0, life:.55, r:speed * .55, col:c1 });
-    sfx.boom(x, type !== 'peony', burst.cracks);
   }
   function launchRandom(){
-    launchNear(Math.random() < .5 ? -1 : 1, false);
+    launchNear(Math.random() < .5 ? -1 : 1, true);
   }
   // bursts land beside the lantern, inside its region, so the copy stays readable
-  function launchNear(side, user){
+  function launchNear(side, user, force, opts){
     const off = (1.7 + Math.random() * 1.6) * LS.ppu;
     let x = LS.x + side * off;
     const lo = Math.max(18, wideMQ.matches ? region.l - LS.ppu : 18), hi = FW - 18;
     if (x < lo || x > hi) x = LS.x - side * off;
     x = Math.max(lo, Math.min(hi, x));
     const y = region.t + (region.b - region.t) * (.08 + Math.random() * .42);
-    launchAt(x, y, user);
+    launchAt(x, y, user, { force, ...opts });
   }
   function diamond(len, wid, back){
     fctx.beginPath();
@@ -1004,84 +1159,91 @@
     fctx.closePath();
   }
   function updateFx(dt){
-    const u = unit();
     for (let i = rockets.length - 1; i >= 0; i--){
       const r = rockets[i];
       r.age += dt;
       const t = Math.min(1, r.age / r.life), e = 1 - Math.pow(1 - t, 3);
+      r.px = r.x; r.py = r.y;
       r.x = r.sx + (r.tx - r.sx) * e + Math.sin(r.age * 22) * 1.2;
       r.y = r.sy + (r.ty - r.sy) * e;
-      r.trail.unshift({ x:r.x, y:r.y }); if (r.trail.length > 12) r.trail.pop();
-      if (t >= 1){ burstAt(r.tx, r.ty, r.user, r.burst); rockets.splice(i, 1); }
+      if (t >= 1){ burstAt(r.tx, r.ty, r); rockets.splice(i, 1); }
     }
-    const drag = Math.exp(-1.9 * dt), grav = 150 * u;
     for (let i = parts.length - 1; i >= 0; i--){
       const q = parts[i];
       q.age += dt;
-      if (q.age >= q.life){ parts.splice(i, 1); continue; }
-      q.vx *= drag; q.vy = q.vy * drag + grav * dt;
+      if (q.age >= q.life){
+        if (q.split){
+          // crossette: each shell cracks into a small cross
+          const a0 = Math.atan2(q.vy, q.vx) + .78, s = 150 * unit();
+          for (let k = 0; k < 4; k++){
+            const a = a0 + k * 1.571;
+            spawn(q.x, q.y, Math.cos(a) * s, Math.sin(a) * s, { drag:2.3, grav:80, life:.8, col:q.col, w:q.w * .75, dim:q.dim });
+          }
+        }
+        parts.splice(i, 1); continue;
+      }
+      const drag = Math.exp(-q.drag * dt);
+      q.px = q.x; q.py = q.y;
+      q.vx *= drag; q.vy = q.vy * drag + q.grav * dt;
       q.x += q.vx * dt; q.y += q.vy * dt;
-      if (q.rot !== undefined) q.rot += q.vr * dt;
+      // willow: the falling streaks shed tiny embers
+      if (q.sparks && Math.random() < q.sparks * dt * 7 && parts.length < MAX_PARTS - 100){
+        spawn(q.x, q.y, (Math.random() - .5) * 18, 10 + Math.random() * 16, { drag:1.2, grav:42, life:.5 + Math.random() * .5, col:'255,170,80', w:.7, twinkle:1, dim:q.dim });
+      }
     }
     for (let i = flashes.length - 1; i >= 0; i--){
       flashes[i].age += dt;
       if (flashes[i].age >= flashes[i].life) flashes.splice(i, 1);
     }
   }
-  function drawFx(t){
-    fctx.globalCompositeOperation = 'lighter';
-    for (const f of flashes){
-      const k = f.age / f.life, e = 1 - Math.pow(1 - k, 3);
-      glow(f.x, f.y, f.r * 1.3, '255,236,255', (1 - k) * (1 - k) * .45);
-      fctx.save();
-      fctx.translate(f.x, f.y);
-      fctx.globalAlpha = (1 - k) * (1 - k) * .9;
-      fctx.strokeStyle = f.col; fctx.lineWidth = 2.2 * (1 - k) + .4;
-      const rr = f.r * (.25 + e * .75);
-      diamond(rr, rr, rr); fctx.stroke();
-      fctx.restore();
+  let fadeTick = 0, trailQuiet = 0;
+  function drawTrails(dt){
+    // Low-alpha fades stall before reaching zero, so every few frames a stronger pass clears the last of it.
+    tctx.globalCompositeOperation = 'destination-out';
+    fadeTick = (fadeTick + 1) % 5;
+    tctx.fillStyle = 'rgba(0,0,0,' + (fadeTick ? (1 - Math.exp(-3 * dt)).toFixed(3) : '.16') + ')';
+    tctx.fillRect(0, 0, FW, FH);
+    if (!rockets.length && !parts.length){
+      trailQuiet += dt;
+      if (trailQuiet > 1.4){ tctx.clearRect(0, 0, FW, FH); trailQuiet = -1e9; }
+      return;
     }
+    trailQuiet = 0;
+    tctx.globalCompositeOperation = 'lighter';
     for (const r of rockets){
-      for (let j = r.trail.length - 1; j >= 0; j--){
-        const p = r.trail[j], k = j / r.trail.length;
-        fctx.save(); fctx.translate(p.x, p.y);
-        fctx.globalAlpha = (1 - k) * .7; fctx.fillStyle = '#ffd9a0';
-        const sz = 3.2 * (1 - k) + .6;
-        diamond(sz * 1.6, sz * .6, sz * 1.6); fctx.rotate(0); fctx.fill();
-        fctx.restore();
-      }
-      glow(r.x, r.y, 26, '255,210,150', .4);
-      fctx.save(); fctx.translate(r.x, r.y); fctx.rotate(-Math.PI / 2);
-      fctx.globalAlpha = 1; fctx.fillStyle = '#fff4dc';
-      diamond(7, 3, 5); fctx.fill();
-      fctx.restore();
+      tctx.globalAlpha = .75 * r.depth; tctx.strokeStyle = 'rgb(255,214,160)'; tctx.lineWidth = 1.6 * r.depth + .4;
+      tctx.beginPath(); tctx.moveTo(r.px, r.py); tctx.lineTo(r.x, r.y); tctx.stroke();
     }
     for (const q of parts){
       const k = q.age / q.life;
-      let a = k < .06 ? k / .06 : Math.pow(1 - k, 1.4);
-      if (q.tw) a *= .55 + .45 * Math.sin(t * 28 + q.ph);
-      if (a <= .01) continue;
-      fctx.save();
-      fctx.translate(q.x, q.y);
-      fctx.fillStyle = q.col;
-      if (q.kind === 'diamond'){
-        const sp = Math.hypot(q.vx, q.vy);
-        fctx.rotate(Math.atan2(q.vy, q.vx));
-        const len = q.size * (1 + Math.min(sp / 140, 1.8));
-        const wid = q.size * .4 * (1 - k * .35);
-        fctx.globalAlpha = a * .2;
-        diamond(len * 1.9, wid * 2.6, len * 1.5); fctx.fill();
-        fctx.globalAlpha = a;
-        diamond(len, wid, len * .75); fctx.fill();
-      } else {
-        fctx.rotate(q.rot || 0);
-        const r = q.size * (1 - k * .3);
-        fctx.globalAlpha = a * .22;
-        star(r * 2.1); fctx.fill();
-        fctx.globalAlpha = a;
-        star(r); fctx.fill();
-      }
-      fctx.restore();
+      let a = Math.pow(1 - k, 1.25) * q.dim;
+      if (q.twinkle) a *= .35 + .65 * Math.abs(Math.sin(time * 19 + q.ph));
+      if (a < .02) continue;
+      tctx.globalAlpha = a; tctx.strokeStyle = 'rgb(' + q.col + ')'; tctx.lineWidth = q.w;
+      tctx.beginPath(); tctx.moveTo(q.px, q.py); tctx.lineTo(q.x, q.y); tctx.stroke();
+    }
+    tctx.globalAlpha = 1;
+  }
+  function drawFx(t){
+    fctx.globalCompositeOperation = 'lighter';
+    for (const f of flashes){
+      const k = f.age / f.life, a = (1 - k) * (1 - k);
+      // the burst lights the whole sky for a moment, then its own core
+      glow(f.x, f.y, Math.max(FW, FH) * .75, f.col, a * .2 * f.sky);
+      glow(f.x, f.y, f.r * (.5 + k * .7), '255,244,232', a * .75 * f.sky);
+    }
+    for (const r of rockets){
+      fctx.globalAlpha = r.depth;
+      fctx.drawImage(dot('255,225,180'), r.x - 7, r.y - 7, 14, 14);
+    }
+    for (const q of parts){
+      const k = q.age / q.life;
+      let a = (k < .05 ? k / .05 : Math.pow(1 - k, 1.3)) * q.dim;
+      if (q.twinkle) a *= .3 + .7 * Math.abs(Math.sin(t * 24 + q.ph));
+      if (a < .02) continue;
+      const sz = 3 + q.w * 2.6;
+      fctx.globalAlpha = a;
+      fctx.drawImage(dot(q.col), q.x - sz / 2, q.y - sz / 2, sz, sz);
     }
     fctx.globalAlpha = 1;
     fctx.globalCompositeOperation = 'source-over';
@@ -1097,7 +1259,7 @@
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     if (on){
       state.flickerT = .75;
-      hint.textContent = 'Drag to spin it. Tap anywhere for fireworks.';
+      hint.textContent = 'Tap the sky. Every firework changes its colour.';
       sfx.chime();
       sfx.setMood(true);
       rippleOut();
@@ -1107,8 +1269,9 @@
       // a small celebration, user-triggered so it gets haptics too
       [.55, 1.05, 1.5].forEach((d, i) => setTimeout(() => {
         if (state.litTarget < .5) return;
-        launchNear(i % 2 ? 1 : -1, true);
+        launchNear(i % 2 ? 1 : -1, true, i === 2 ? 'bubble' : 'chrysanthemum', i === 2 ? {} : { theme });
       }, d * 1000));
+      nextShell = 2.6;
     } else {
       hint.textContent = 'Tap the lantern to light it';
       sfx.setMood(false);
@@ -1262,6 +1425,7 @@
 
     // light
     state.lit += (state.litTarget - state.lit) * (1 - Math.exp(-3.2 * dt));
+    easeTheme(dt);
     let f;
     if (state.flickerT > 0){ state.flickerT -= dt; f = Math.random() < .35 ? .2 : 1; }
     else f = reduce ? 1 : .93 + .07 * Math.sin(time * 11) * Math.sin(time * 6.7 + .4);
@@ -1282,7 +1446,9 @@
 
     updateTassels(time);
 
+    runShow(dt);
     updateFx(dt);
+    drawTrails(dt);
     fctx.clearRect(0, 0, FW, FH);
     lanternScreen();
     drawSky(time, dt);
