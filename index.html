@@ -13,7 +13,7 @@
 <meta property="og:image" content="https://idevsr.github.io/pocketfm-diwali/og.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The Pocket FM logo above Here’s to brighter stories, beside a glowing red paper lantern with fireworks.">
+<meta property="og:image:alt" content="The Pocket FM logo above Here’s to brighter stories, beside a glowing paper-cut kandil with fireworks.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Here’s to brighter stories. Happy Diwali from Pocket FM">
 <meta name="twitter:description" content="Light the lantern. Every firework changes the sky.">
@@ -242,15 +242,12 @@
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
-  // lantern proportions: 6 sides, slim body
-  const N = 6, STEP = 360 / N;
-  const R = 1, H = 0.68, BH = 0.38;
-  const RW = R / Math.cos(Math.PI / N); // keeps each diamond face flat
-  const HOOK_Y = H + BH + 1.05;
+  // lantern proportions: H + BH is half the height of the paper body
+  const H = 1, BH = .46, LW = 2.6; // LW = full width of the artwork in world units
+  const HOOK_Y = H + BH + .62;
   // fixed point the cord hangs from, far above the screen; the lantern swings from here
   const ANCHOR_Y = HOOK_Y + 7;
-  const FACE_ASPECT = (2 * R * Math.tan(Math.PI / N)) / (2 * H); // panel width / height
-  const FIT_TOP = HOOK_Y - .1, FIT_BOTTOM = -H - BH - 2.2, FIT_W = 2 * RW + .4;
+  const FIT_TOP = HOOK_Y - .1, FIT_BOTTOM = -H - BH - 2.55, FIT_W = LW + .5;
 
   const headerEl = document.querySelector('header');
   const hintEl = document.getElementById('hint');
@@ -277,7 +274,7 @@
     camera.aspect = w / h;
     // fit the lantern into its free region (below the copy on phones, right of it on wide screens)
     computeRegion(w, h);
-    const availH = Math.min(Math.max(140, region.b - region.t), 620);
+    const availH = Math.min(Math.max(140, region.b - region.t), 780);
     const availW = Math.max(160, region.r - region.l);
     const tanH = Math.tan(17.5 * Math.PI / 180);
     const wide = wideMQ.matches;
@@ -320,116 +317,110 @@
     t.anisotropy = maxAniso;
     return t;
   }
-  function diamondPath(ctx, cx, cy, r){
+  // ---------- Lantern artwork: a flat paper-cut kandil ----------
+  // Two layers per side: a cut-out paper frame in front, and thin coloured paper behind it
+  // that lights up. All coordinates are pixels on a 1024 x 1152 sheet.
+  const ART_W = 1024, ART_H = 1152, ART_S = LW / ART_W;
+  const Y0 = 40, Y1 = 281, YC = 600, Y2 = 901, Y3 = 1101;
+  const BODY = {
+    left:[[46, 572], [276, Y1], [512, YC], [297, Y2]],
+    right:[[978, 572], [748, Y1], [512, YC], [727, Y2]],
+    top:[[276, Y1], [748, Y1], [512, YC]],
+    bottom:[[297, Y2], [727, Y2], [512, YC]]
+  };
+  const BAND_TOP = [[224, Y0], [800, Y0], [800, Y1], [224, Y1]];
+  const BAND_BOTTOM = [[260, Y2], [764, Y2], [764, Y3], [260, Y3]];
+  const ORANGE = '#ff4a12', BLUE = '#1546e8', YELLOW = '#ffdf00';
+  function poly(ctx, pts){
     ctx.beginPath();
-    ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r, cy); ctx.lineTo(cx, cy + r); ctx.lineTo(cx - r, cy);
+    pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
     ctx.closePath();
   }
-  function archPath(ctx, cx, top, w, h){
-    const r = w / 2;
-    ctx.beginPath();
-    ctx.moveTo(cx - r, top + h); ctx.lineTo(cx - r, top + r);
-    ctx.arc(cx, top + r, r, Math.PI, 0);
-    ctx.lineTo(cx + r, top + h); ctx.closePath();
+  function shrink(pts, k){
+    const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cy = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+    return pts.map(p => [cx + (p[0] - cx) * k, cy + (p[1] - cy) * k]);
   }
-  function sparkle(ctx, x, y, r){
-    const k = r * .26;
-    ctx.beginPath();
-    ctx.moveTo(x, y - r); ctx.lineTo(x + k, y - k); ctx.lineTo(x + r, y); ctx.lineTo(x + k, y + k);
-    ctx.lineTo(x, y + r); ctx.lineTo(x - k, y + k); ctx.lineTo(x - r, y); ctx.lineTo(x - k, y - k);
-    ctx.closePath();
-  }
-  function dotDiamond(ctx, r, step, rad){
-    const pts = [[256, 256 - r], [256 + r, 256], [256, 256 + r], [256 - r, 256]];
-    for (let e = 0; e < 4; e++){
-      const a = pts[e], b = pts[(e + 1) % 4];
-      const n = Math.floor(Math.hypot(b[0] - a[0], b[1] - a[1]) / step);
-      for (let i = 0; i < n; i++){
-        const t = (i + .5) / n;
-        ctx.beginPath(); ctx.arc(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, rad, 0, Math.PI * 2); ctx.fill();
+  function scallops(ctx, pts, r){
+    for (let i = 0; i < pts.length; i++){
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      const n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / (r * 1.75)));
+      for (let k = 0; k <= n; k++){
+        ctx.beginPath(); ctx.arc(a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n, r, 0, 6.2832); ctx.fill();
       }
     }
   }
-  function zigzag(ctx, w, y, dir, size, step){
-    ctx.beginPath();
-    for (let x = 0; x < w; x += step){
-      ctx.moveTo(x, y); ctx.lineTo(x + step / 2, y + dir * size); ctx.lineTo(x + step, y);
+  // cuts a repeating pattern out of the frame, kept inside `pts`
+  function cutLattice(ctx, pts, step, cut){
+    ctx.save();
+    poly(ctx, pts); ctx.clip();
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = '#000';
+    const d = step * .7071;
+    for (let i = -24; i <= 24; i++) for (let j = -24; j <= 24; j++){
+      cut(512 + (i - j) * d, 572 + (i + j) * d, (i + j) & 1);
     }
-    ctx.closePath(); ctx.fill();
+    ctx.restore();
   }
-
-  // Panels: gold frame with a dotted border and a big logo in the middle.
-  // Nudged up and right so the bubble's tail clears the dotted border.
-  const LOGO_DX = 6, LOGO_DY = -8;
-  function panelDraw(glow){
-    return (ctx) => {
-      if (glow){ ctx.fillStyle = '#6a0a2a'; }
-      else { const g = ctx.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, '#f8386a'); g.addColorStop(1, '#c20d3e'); ctx.fillStyle = g; }
-      ctx.fillRect(0, 0, 512, 512);
-      // soft light pooling behind the logo
-      const rg = ctx.createRadialGradient(256, 256, 0, 256, 256, 230);
-      rg.addColorStop(0, glow ? 'rgba(255,120,120,1)' : 'rgba(255,150,150,.5)');
-      rg.addColorStop(1, glow ? 'rgba(106,10,42,0)' : 'rgba(255,150,150,0)');
-      ctx.fillStyle = rg; diamondPath(ctx, 256, 256, 236); ctx.fill();
-      diamondPath(ctx, 256, 256, 244); ctx.strokeStyle = glow ? '#8a5a1c' : '#ffd27a'; ctx.lineWidth = 6; ctx.stroke();
-      ctx.fillStyle = glow ? '#7a4f18' : '#ffd27a';
-      dotDiamond(ctx, 228, 20, 3.4);
-      ctx.save();
-      ctx.translate(256, 256); ctx.scale(1 / FACE_ASPECT, 1);
-      if (glow){
-        ctx.save(); ctx.globalAlpha = .28; ctx.filter = 'blur(22px)';
-        drawLogo(ctx, LOGO_DX, LOGO_DY, 196, '#ffd9c8');
-        ctx.restore();
-      }
-      drawLogo(ctx, LOGO_DX, LOGO_DY, 180, '#ffffff');
-      ctx.restore();
+  function bandArt(ctx, pts, face, inner){
+    ctx.fillStyle = face;
+    scallops(ctx, pts, 17);
+    poly(ctx, pts); ctx.fill();
+    const w = shrink(pts, .84), cy = (pts[0][1] + pts[2][1]) / 2;
+    ctx.save(); ctx.globalCompositeOperation = 'destination-out'; poly(ctx, w); ctx.fill(); ctx.restore();
+    ctx.fillStyle = inner; ctx.strokeStyle = inner; ctx.lineWidth = 17;
+    ctx.fillRect(w[0][0], cy - 9, w[1][0] - w[0][0], 18);
+    [-150, 0, 150].forEach((dx) => {
+      ctx.save(); ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath(); ctx.arc(512 + dx, cy, 56, 0, 6.2832); ctx.fill(); ctx.restore();
+      ctx.beginPath(); ctx.arc(512 + dx, cy, 56, 0, 6.2832); ctx.stroke();
+      if (!dx){ ctx.beginPath(); ctx.arc(512, cy, 22, 0, 6.2832); ctx.fill(); }
+    });
+  }
+  function frameArt(ctx){
+    ['left', 'right'].forEach((side) => {
+      const pts = BODY[side];
+      ctx.fillStyle = ORANGE;
+      scallops(ctx, pts, 17);
+      poly(ctx, pts); ctx.fill();
+      // a mesh of thin paper bars: rounded square windows, with most of the glow showing through
+      cutLattice(ctx, shrink(pts, .86), 54, (x, y) => {
+        ctx.beginPath(); ctx.moveTo(x, y - 24); ctx.quadraticCurveTo(x + 7, y - 7, x + 24, y); ctx.quadraticCurveTo(x + 7, y + 7, x, y + 24); ctx.quadraticCurveTo(x - 7, y + 7, x - 24, y); ctx.quadraticCurveTo(x - 7, y - 7, x, y - 24); ctx.closePath(); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 38, y, 11.5, 0, 6.2832); ctx.fill();
+      });
+      // the logo sits on a solid disc in the middle of each diamond
+      const cx = side === 'left' ? 280 : 744, cy = 588;
+      ctx.fillStyle = ORANGE;
+      ctx.beginPath(); ctx.arc(cx, cy, 100, 0, 6.2832); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.arc(cx, cy, 91, 0, 6.2832); ctx.stroke();
+      drawLogo(ctx, cx + 3, cy - 6, 116, '#ffffff');
+    });
+    ['top', 'bottom'].forEach((side) => {
+      const pts = BODY[side];
+      ctx.fillStyle = BLUE;
+      poly(ctx, pts); ctx.fill();
+      cutLattice(ctx, shrink(pts, .78), 40, (x, y) => {
+        ctx.beginPath(); ctx.moveTo(x, y - 19); ctx.lineTo(x + 19, y); ctx.lineTo(x, y + 19); ctx.lineTo(x - 19, y); ctx.closePath(); ctx.fill();
+      });
+    });
+    bandArt(ctx, BAND_TOP, ORANGE, ORANGE);
+    bandArt(ctx, BAND_BOTTOM, YELLOW, YELLOW);
+  }
+  function vellumArt(ctx){
+    const pane = (pts, inner, outer) => {
+      const g = ctx.createRadialGradient(512, 590, 40, 512, 590, 620);
+      g.addColorStop(0, inner); g.addColorStop(1, outer);
+      ctx.fillStyle = g; poly(ctx, pts); ctx.fill();
     };
+    pane(BODY.left, '#fff6a0', '#ffc800');
+    pane(BODY.right, '#fff6a0', '#ffc800');
+    pane(BODY.top, '#ff7cf0', '#d81fd0');
+    pane(BODY.bottom, '#ff7cf0', '#d81fd0');
+    ctx.fillStyle = '#2fdc55'; poly(ctx, BAND_TOP); ctx.fill();
+    ctx.fillStyle = '#ff5cc8'; poly(ctx, BAND_BOTTOM); ctx.fill();
   }
-  const diamondMap = tex(512, 512, panelDraw(false));
-  const diamondGlow = tex(512, 512, panelDraw(true));
-
-  // Triangles between panels: deep wine paper (darker than the logo panels, so the diamonds stand out)
-  // with nested gold chevrons and a zigzag edge.
-  function triDraw(glow){
-    return (ctx) => {
-      if (glow){ ctx.fillStyle = '#3a0516'; }
-      else { const g = ctx.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, '#8e0c34'); g.addColorStop(1, '#5a0722'); ctx.fillStyle = g; }
-      ctx.fillRect(0, 0, 256, 256);
-      ctx.strokeStyle = glow ? '#6e4614' : 'rgba(255,210,122,.85)'; ctx.lineWidth = 4; ctx.lineJoin = 'round';
-      for (let i = 0; i < 3; i++){
-        const y0 = 42 + i * 52, hw = 128 * (1 - y0 / 256) * .72;
-        ctx.beginPath(); ctx.moveTo(128 - hw, y0); ctx.lineTo(128, y0 + 40); ctx.lineTo(128 + hw, y0); ctx.stroke();
-      }
-      ctx.fillStyle = glow ? '#6e4614' : '#ffd27a';
-      zigzag(ctx, 256, 0, 1, 12, 22);
-    };
-  }
-  const triMap = tex(256, 256, triDraw(false));
-  const triGlow = tex(256, 256, triDraw(true));
-
-  // Bands: gold zigzag edges and a row of four-point sparkles that glow warm when lit.
-  function bandDraw(glow){
-    return (ctx, w, h) => {
-      if (glow){ ctx.fillStyle = '#6a0a2a'; }
-      else { const g = ctx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#e51a4d'); g.addColorStop(1, '#b30e3a'); ctx.fillStyle = g; }
-      ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = glow ? '#6e4614' : '#ffd27a';
-      zigzag(ctx, w, 0, 1, 14, 24);
-      zigzag(ctx, w, h, -1, 14, 24);
-      ctx.fillRect(0, 24, w, 2.5); ctx.fillRect(0, h - 26.5, w, 2.5);
-      for (let i = 0; i < 5; i++){
-        const cx = w * (i + .5) / 5;
-        ctx.fillStyle = glow ? '#ffc46a' : '#ffd27a';
-        sparkle(ctx, cx, h / 2, 34);
-        ctx.fill();
-        ctx.fillStyle = glow ? '#ffe6b8' : '#fff1cf';
-        sparkle(ctx, cx, h / 2, 12);
-        ctx.fill();
-      }
-    };
-  }
-  const bandMap = tex(512, 200, bandDraw(false));
-  const bandGlow = tex(512, 200, bandDraw(true));
+  const frameMap = tex(ART_W, ART_H, frameArt);
+  const vellumMap = tex(ART_W, ART_H, vellumArt);
 
   function radialTex(stops){
     return tex(256, 256, (ctx) => {
@@ -441,43 +432,10 @@
   const sparkTex = radialTex([[0, 'rgba(255,255,255,1)'], [.25, 'rgba(255,255,255,.85)'], [.6, 'rgba(255,255,255,.15)'], [1, 'rgba(255,255,255,0)']]);
   const haloTex = radialTex([[0, 'rgba(255,210,200,1)'], [.3, 'rgba(255,70,110,.45)'], [.65, 'rgba(229,26,77,.12)'], [1, 'rgba(200,0,60,0)']]);
 
-  // ---------- Lantern geometry ----------
-  function P(r, deg, y){ const a = deg * Math.PI / 180; return [r * Math.sin(a), y, r * Math.cos(a)]; }
-  function geo(tris){
-    const pos = [], uv = [];
-    tris.forEach(t => { pos.push(...t[0], ...t[1], ...t[2]); uv.push(...t[3], ...t[4], ...t[5]); });
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    g.computeVertexNormals();
-    return g;
-  }
-  const dTris = [], tTris = [], bTris = [], capTris = [], bottomCapTris = [];
-  const HS = STEP / 2;
-  for (let k = 0; k < N; k++){
-    const c = k * STEP;
-    const T = P(R, c, H), Rt = P(RW, c + HS, 0), B = P(R, c, -H), L = P(RW, c - HS, 0);
-    dTris.push([L, B, Rt, [0, .5], [.5, 0], [1, .5]], [L, Rt, T, [0, .5], [1, .5], [.5, 1]]);
-    const Tn = P(R, c + STEP, H), Bn = P(R, c + STEP, -H);
-    tTris.push([T, Rt, Tn, [0, 1], [.5, 0], [1, 1]]);
-    tTris.push([B, Bn, Rt, [0, 1], [1, 1], [.5, 0]]);
-    [[H, H + BH], [-H - BH, -H]].forEach(([y0, y1]) => {
-      const BL = P(R, c, y0), BR = P(R, c + STEP, y0), TR = P(R, c + STEP, y1), TL = P(R, c, y1);
-      bTris.push([BL, BR, TR, [0, 0], [1, 0], [1, 1]], [BL, TR, TL, [0, 0], [1, 1], [0, 1]]);
-    });
-    capTris.push([[0, H + BH, 0], P(R, c, H + BH), P(R, c + STEP, H + BH), [.5, .5], [0, 0], [1, 0]]);
-    bottomCapTris.push([[0, -H - BH, 0], P(R, c + STEP, -H - BH), P(R, c, -H - BH), [.5, .5], [0, 0], [1, 0]]);
-  }
-
-  function paper(map, glow){
-    return new THREE.MeshStandardMaterial({ map, emissiveMap:glow, emissive:0xffffff, emissiveIntensity:0, roughness:.75, metalness:0 });
-  }
-  const matDiamond = paper(diamondMap, diamondGlow);
-  const matTri = paper(triMap, triGlow);
-  const matBand = paper(bandMap, bandGlow);
-  const matCap = new THREE.MeshStandardMaterial({ color:0x4a0a20, roughness:.8, side:THREE.DoubleSide });
-  const matGold = new THREE.MeshStandardMaterial({ color:0xd9a441, metalness:.55, roughness:.35, emissive:0xffb84a, emissiveIntensity:0 });
-  const matBottom = new THREE.MeshStandardMaterial({ color:0x7a1030, emissive:0xffd0c8, emissiveIntensity:0, roughness:.8, side:THREE.DoubleSide });
+  // ---------- Lantern ----------
+  const matFrame = new THREE.MeshStandardMaterial({ map:frameMap, emissiveMap:frameMap, emissive:0xffffff, emissiveIntensity:0, alphaTest:.5, roughness:.7, side:THREE.DoubleSide });
+  const matVellum = new THREE.MeshStandardMaterial({ map:vellumMap, emissiveMap:vellumMap, emissive:0xffffff, emissiveIntensity:0, alphaTest:.5, roughness:.85 });
+  const matSide = new THREE.MeshStandardMaterial({ color:0xff4a12, emissive:0xff5a18, emissiveIntensity:0, roughness:.8 });
 
   const pivot = new THREE.Group();
   pivot.position.y = ANCHOR_Y;
@@ -486,29 +444,33 @@
   lantern.position.y = -ANCHOR_Y;
   pivot.add(lantern);
 
+  // sheet pixels to world units (the sheet's body runs from Y0 to Y3)
+  const artY = (y) => (H + BH) - (y - Y0) * ((H + BH) * 2 / (Y3 - Y0));
+  const artH = ART_H * ((H + BH) * 2 / (Y3 - Y0));
+  const planeY = artY(ART_H / 2);
+  const DEPTH = .06; // half the gap between the two paper faces
   const hitMeshes = [];
-  [[dTris, matDiamond], [tTris, matTri], [bTris, matBand], [capTris, matCap], [bottomCapTris, matBottom]].forEach(([t, m]) => {
-    const mesh = new THREE.Mesh(geo(t), m);
-    lantern.add(mesh); hitMeshes.push(mesh);
+  // the body between the faces: a slim box in the lantern's outline, so it has an edge when it turns
+  const outline = [[232, 48], [792, 48], [792, 273], [744, 287], [968, 572], [722, 895], [756, 909], [756, 1093], [268, 1093], [268, 909], [302, 895], [56, 572], [280, 287], [232, 273]];
+  const shape = new THREE.Shape(outline.map(p => new THREE.Vector2((p[0] - 512) * ART_S, artY(p[1]))));
+  const sideGeo = new THREE.ExtrudeGeometry(shape, { depth:DEPTH * 2, bevelEnabled:false });
+  sideGeo.translate(0, 0, -DEPTH);
+  const sideMesh = new THREE.Mesh(sideGeo, matSide);
+  lantern.add(sideMesh); hitMeshes.push(sideMesh);
+  const sheetGeo = new THREE.PlaneGeometry(LW, artH);
+  [1, -1].forEach((face) => {
+    const vellum = new THREE.Mesh(sheetGeo, matVellum), frame = new THREE.Mesh(sheetGeo, matFrame);
+    vellum.position.set(0, planeY, face * (DEPTH + .006));
+    frame.position.set(0, planeY, face * (DEPTH + .04)); // the gap gives the cut paper real depth as it turns
+    if (face < 0){ vellum.rotation.y = Math.PI; frame.rotation.y = Math.PI; }
+    lantern.add(vellum, frame);
+    hitMeshes.push(frame);
   });
 
-  // gold finial on top
-  const finial = new THREE.Mesh(new THREE.SphereGeometry(.11, 20, 14), matGold);
-  finial.position.y = H + BH + .1;
-  lantern.add(finial);
-  const finialTip = new THREE.Mesh(new THREE.ConeGeometry(.05, .16, 12), matGold);
-  finialTip.position.y = H + BH + .27;
-  lantern.add(finialTip);
-
-  // strings to the hook
-  const sPts = [], sCol = [];
-  for (let k = 0; k < N; k++){
-    sPts.push(...P(R * .96, k * STEP, H + BH), 0, HOOK_Y, 0);
-    sCol.push(.62, .42, .4, .45, .3, .28);
-  }
-  // one cord up from where the strings meet, fading into the sky
-  sPts.push(0, HOOK_Y, 0, 0, ANCHOR_Y, 0);
-  sCol.push(.45, .3, .28, 0, 0, 0);
+  // cord: a V from the top corners, then one line up, fading into the sky
+  const topY = H + BH - .02, cornerX = (800 - 512) * ART_S * .9;
+  const sPts = [-cornerX, topY, 0, 0, HOOK_Y, 0, cornerX, topY, 0, 0, HOOK_Y, 0, 0, HOOK_Y, 0, 0, ANCHOR_Y, 0];
+  const sCol = [.7, .55, .45, .55, .42, .36, .7, .55, .45, .55, .42, .36, .55, .42, .36, 0, 0, 0];
   const sGeo = new THREE.BufferGeometry();
   sGeo.setAttribute('position', new THREE.Float32BufferAttribute(sPts, 3));
   sGeo.setAttribute('color', new THREE.Float32BufferAttribute(sCol, 3));
@@ -527,29 +489,27 @@
   moon.position.set(-4, 5, 6);
   scene.add(moon);
 
-  // ---------- Tassels ----------
-  const SEG = 10, PER_EDGE = 12;
-  const palette = ['#e51a4d', '#c20d3e', '#ff5c80', '#8e0c34', '#ff8a3c', '#ffc56b', '#f8386a', '#ffd27a', '#e51a4d'];
+  // ---------- Streamers: wide yellow ribbons with thin orange ones at the edges ----------
+  const SEG = 10;
   const strips = [];
-  const yb = -H - BH + .02;
-  for (let e = 0; e < N; e++){
-    const a = new THREE.Vector3(...P(R * .97, e * STEP, yb));
-    const b = new THREE.Vector3(...P(R * .97, e * STEP + STEP, yb));
-    const tan = b.clone().sub(a).normalize();
-    for (let i = 0; i < PER_EDGE; i++){
-      const t = (i + .5) / PER_EDGE;
-      const base = a.clone().lerp(b, t);
-      const radial = new THREE.Vector3(base.x, 0, base.z).normalize();
-      const spinDir = new THREE.Vector3(radial.z, 0, -radial.x); // direction of positive spin
-      strips.push({
-        base, tan, radial, spinDir,
-        len:1.65 + Math.random() * .45,
-        tip:new THREE.Vector3(),
-        w:.055,
-        phase:Math.random() * Math.PI * 2,
-        color:new THREE.Color(palette[(Math.random() * palette.length) | 0])
-      });
-    }
+  const yb = -H - BH + .03;
+  const STREAMERS = 17, STREAM_W = (764 - 260) * ART_S * .5;
+  for (let i = 0; i < STREAMERS; i++){
+    const t = (i / (STREAMERS - 1)) * 2 - 1, a = Math.abs(t), edge = a > .68;
+    const sign = t < 0 ? -1 : 1;
+    const shades = edge ? ['#ff5a1f', '#ff3a14', '#ff7a20'] : ['#ffe600', '#fff04a', '#ffd800'];
+    strips.push({
+      base:new THREE.Vector3(t * STREAM_W, yb, (i % 2 ? 1 : -1) * .03),
+      tan:new THREE.Vector3(1, 0, 0),
+      radial:new THREE.Vector3(sign, 0, 0),
+      spinDir:new THREE.Vector3(0, 0, sign),
+      fan:a * (edge ? .22 : .08),
+      len:2.25 + Math.random() * .25 - a * .1,
+      tip:new THREE.Vector3(),
+      w:edge ? .05 : .125,
+      phase:Math.random() * Math.PI * 2,
+      color:new THREE.Color(shades[(Math.random() * 3) | 0])
+    });
   }
   const vPerStrip = (SEG + 1) * 2;
   const tPos = new Float32Array(strips.length * vPerStrip * 3);
@@ -573,14 +533,9 @@
   tasselGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3));
   tasselGeo.setAttribute('color', new THREE.BufferAttribute(tCol, 3));
   tasselGeo.setIndex(tIdx);
-  const matTassel = new THREE.MeshStandardMaterial({ vertexColors:true, side:THREE.DoubleSide, roughness:.6, emissive:0x661026, emissiveIntensity:0 });
+  const matTassel = new THREE.MeshBasicMaterial({ vertexColors:true, side:THREE.DoubleSide });
   const tassels = new THREE.Mesh(tasselGeo, matTassel);
   lantern.add(tassels);
-  // small gold beads on the end of every other tassel
-  const beadIdx = strips.map((_, i) => i).filter(i => i % 2 === 0);
-  const beads = new THREE.InstancedMesh(new THREE.OctahedronGeometry(.05), matGold, beadIdx.length);
-  lantern.add(beads);
-  const beadDummy = new THREE.Object3D();
 
   // ---------- Sound (synthesised, no files) ----------
   const sfx = (function(){
@@ -831,10 +786,10 @@
       tone.soft[i] += (t.soft[i] - tone.soft[i]) * k;
     }
     innerLight.color.setRGB(tone.soft[0] / 255, tone.soft[1] / 255, tone.soft[2] / 255);
-    // the paper picks up a little of the theme's light; 1 - .32 keeps it recognisably red and gold
+    // the paper picks up a little of the theme's light but keeps its own colours
     const e = (c) => (1 - .32) + .32 * c / 255;
     tint.setRGB(e(tone.soft[0]), e(tone.soft[1]), e(tone.soft[2]));
-    matDiamond.emissive.copy(tint); matTri.emissive.copy(tint); matBand.emissive.copy(tint);
+    matVellum.emissive.copy(tint);
   }
   const tint = new THREE.Color(1, 1, 1);
 
@@ -886,6 +841,51 @@
         fctx.beginPath(); fctx.moveTo(hx, hy); fctx.lineTo(tx, ty); fctx.stroke();
         if (k >= 1) shooting = null;
       }
+    }
+    fctx.globalAlpha = 1;
+    fctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ---------- Paper sky lanterns drifting up in the distance ----------
+  // Drawn small then scaled up, which blurs them the same way in every browser
+  // (Safari ignores the canvas blur filter).
+  function skyLanternSprite(){
+    const small = document.createElement('canvas'); small.width = 10; small.height = 13;
+    const c = small.getContext('2d');
+    const g = c.createLinearGradient(0, 0, 0, 13);
+    g.addColorStop(0, '#d9601c'); g.addColorStop(.55, '#ffa63c'); g.addColorStop(1, '#ffe9a8');
+    c.fillStyle = g;
+    c.beginPath(); c.moveTo(2, 3); c.quadraticCurveTo(5, 0, 8, 3); c.lineTo(7, 11); c.lineTo(3, 11); c.closePath(); c.fill();
+    const mid = document.createElement('canvas'); mid.width = 20; mid.height = 26;
+    const m = mid.getContext('2d'); m.imageSmoothingQuality = 'high'; m.drawImage(small, 0, 0, 20, 26);
+    const big = document.createElement('canvas'); big.width = 60; big.height = 78;
+    const b = big.getContext('2d'); b.imageSmoothingQuality = 'high';
+    b.filter = 'blur(2.5px)'; // adds to the softness where supported
+    b.drawImage(mid, 0, 0, 60, 78);
+    return big;
+  }
+  const lanternSprite = skyLanternSprite();
+  const FLOATERS = [];
+  for (let i = 0; i < 8; i++){
+    FLOATERS.push({ x:Math.random(), y:Math.random() * 1.2, size:13 + Math.pow(Math.random(), 1.6) * 26, ph:Math.random() * 6.3, sw:.012 + Math.random() * .02 });
+  }
+  function drawFloaters(t, dt){
+    const seen = .3 + .7 * state.lit;
+    fctx.globalCompositeOperation = 'lighter';
+    for (const f of FLOATERS){
+      // bigger means closer: closer ones rise faster and sit further out of focus
+      f.y -= (reduce ? .002 : .0035 + f.size * .00035) * dt;
+      if (f.y < -.12){ f.y = 1.12; f.x = Math.random(); }
+      const x = (f.x + Math.sin(t * .22 + f.ph) * f.sw) * FW, y = f.y * FH;
+      const flick = .84 + .16 * Math.sin(t * 3.1 + f.ph * 3) * Math.sin(t * 1.7 + f.ph);
+      // quieter where the copy sits, so it never competes with the text
+      const quiet = (wideMQ.matches ? x < region.l : y < region.t) ? .4 : 1;
+      const w = f.size, h = w * 1.33;
+      glow(x, y + h * .12, w * 2.4, '255,150,60', .17 * seen * flick * quiet);
+      fctx.globalAlpha = .6 * seen * flick * quiet;
+      fctx.save(); fctx.translate(x, y); fctx.rotate(Math.sin(t * .4 + f.ph) * .07);
+      fctx.drawImage(lanternSprite, -w / 2, -h / 2, w, h);
+      fctx.restore();
     }
     fctx.globalAlpha = 1;
     fctx.globalCompositeOperation = 'source-over';
@@ -1250,8 +1250,8 @@
   }
 
   // ---------- State and interaction ----------
-  const state = { spin:0, spinV:.2, ax:0, vx:0, az:0, vz:0, lit:0, litTarget:0, flickerT:0 };
-  const IDLE_SPIN = reduce ? .06 : .2;
+  const state = { spin:0, spinV:0, ax:0, vx:0, az:0, vz:0, lit:0, litTarget:0, flickerT:0 };
+  const IDLE_SPIN = 0;
 
   function setLit(on){
     state.litTarget = on ? 1 : 0;
@@ -1296,7 +1296,7 @@
   // including the gaps between tassels
   function onLantern(x, y){
     const dx = Math.abs(x - LS.x), dy = y - LS.y, u = LS.ppu;
-    return dx < u * 1.45 && dy > -u * 1.6 && dy < u * 3.3;
+    return dx < u * 1.35 && dy > -u * 1.6 && dy < u * 3.6;
   }
   function tap(x, y){
     const rc = canvas.getBoundingClientRect();
@@ -1367,7 +1367,7 @@
     for (let si = 0; si < strips.length; si++){
       const s = strips[si];
       D.copy(dirL)
-        .addScaledVector(s.radial, flare + Math.sin(t * 1.3 + s.phase * 2) * .035 * wob)
+        .addScaledVector(s.radial, flare + s.fan + Math.sin(t * 1.3 + s.phase * 2) * .035 * wob)
         .addScaledVector(s.spinDir, trail)
         .addScaledVector(s.tan, Math.sin(t * 1.7 + s.phase) * .05 * wob)
         .normalize();
@@ -1385,16 +1385,6 @@
       }
     }
     tasselGeo.attributes.position.needsUpdate = true;
-    tasselGeo.computeVertexNormals();
-    for (let b = 0; b < beadIdx.length; b++){
-      const s = strips[beadIdx[b]];
-      beadDummy.position.copy(s.tip); beadDummy.position.y -= .045;
-      beadDummy.rotation.set(0, t * .8 + s.phase, 0);
-      beadDummy.scale.set(1, 1.5, 1);
-      beadDummy.updateMatrix();
-      beads.setMatrixAt(b, beadDummy.matrix);
-    }
-    beads.instanceMatrix.needsUpdate = true;
   }
 
   const skyEl = document.querySelector('.sky');
@@ -1405,9 +1395,12 @@
     last = now; time += dt;
 
     // spin
+    // both faces match, so it comes to rest on the nearest one and turns gently either way
     if (!drag){
+      const rest = Math.round(state.spin / Math.PI) * Math.PI + (reduce ? 0 : Math.sin(time * .42) * .3);
+      state.spinV += (rest - state.spin) * 2.4 * dt;
+      state.spinV *= Math.exp(-1.5 * dt);
       state.spin += state.spinV * dt;
-      state.spinV += (IDLE_SPIN - state.spinV) * (1 - Math.exp(-.6 * dt));
     }
     state.spinV = Math.max(-14, Math.min(14, state.spinV));
     lantern.rotation.y = state.spin;
@@ -1430,12 +1423,10 @@
     if (state.flickerT > 0){ state.flickerT -= dt; f = Math.random() < .35 ? .2 : 1; }
     else f = reduce ? 1 : .93 + .07 * Math.sin(time * 11) * Math.sin(time * 6.7 + .4);
     const L = state.lit * f;
-    matDiamond.emissiveIntensity = L;
-    matTri.emissiveIntensity = L * .9;
-    matBand.emissiveIntensity = L * .85;
-    matBottom.emissiveIntensity = L * .9;
-    matTassel.emissiveIntensity = L * .45;
-    matGold.emissiveIntensity = L * .35;
+    matVellum.emissiveIntensity = L * 1.1;
+    matFrame.emissiveIntensity = L * .5;
+    matSide.emissiveIntensity = L * .45;
+    matTassel.color.setScalar(.2 + L * .85);
     innerLight.intensity = L * 1.3;
     hemi.intensity = .05 + state.lit * .7;
     moon.intensity = .05 + state.lit * .5;
@@ -1452,6 +1443,7 @@
     fctx.clearRect(0, 0, FW, FH);
     lanternScreen();
     drawSky(time, dt);
+    drawFloaters(time, dt);
     drawGlow();
     drawRipples(dt);
     drawMotes(time, dt);
